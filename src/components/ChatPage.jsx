@@ -11,12 +11,12 @@ export default function ChatPage() {
     { 
       sender: "bot", 
       text: "Hello! I'm your ARGO data assistant. How can I help you today?", 
-      timestamp: new Date(Date.now() - 300000) 
+      timestamp: new Date(Date.now() - 300000),
+      hasVisualization: false
     }
   ]);
-  const [plotData, setPlotData] = useState(null);
+  const [activeVisualization, setActiveVisualization] = useState(null);
   const [input, setInput] = useState("");
-  const [showCanvas, setShowCanvas] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const messagesEndRef = useRef(null);
@@ -37,7 +37,8 @@ export default function ChatPage() {
     const userMessage = { 
       sender: "user", 
       text: input, 
-      timestamp: new Date() 
+      timestamp: new Date(),
+      hasVisualization: false
     };
     
     setMessages((prev) => [...prev, userMessage]);
@@ -46,43 +47,99 @@ export default function ChatPage() {
     // Simulate API call delay
     setTimeout(() => {
       let botResponse;
+      let visualizationData = null;
       
       // Example responses based on user input
       if (input.toLowerCase().includes("plot") || input.toLowerCase().includes("graph")) {
-        const newPlot = { 
-          x: [0, 1, 2, 3, 4, 5], 
-          y: [5, 15, 10, 25, 15, 30],
-          title: "Temperature Variation",
-          xLabel: "Time (days)",
-          yLabel: "Temperature (°C)"
+        visualizationData = { 
+          type: "chart",
+          data: {
+            x: [0, 1, 2, 3, 4, 5], 
+            y: [5, 15, 10, 25, 15, 30],
+            title: "Temperature Variation",
+            xLabel: "Time (days)",
+            yLabel: "Temperature (°C)"
+          }
         };
-        setPlotData(newPlot);
-        setShowCanvas(true);
+        
         botResponse = { 
           sender: "bot", 
-          text: "I've generated the plot you requested. You can view it in the visualization panel.", 
-          timestamp: new Date() 
+          text: "I've generated the plot you requested. Click the visualization button to view it.", 
+          timestamp: new Date(),
+          hasVisualization: true,
+          visualization: visualizationData
         };
       } 
+      else if (input.toLowerCase().includes("table") || input.toLowerCase().includes("data table")) {
+        visualizationData = {
+          type: "table",
+          data: {
+            headers: ["Date", "Temperature (°C)", "Salinity (PSU)", "Depth (m)"],
+            rows: [
+              ["2023-01-15", 25.6, 35.2, 10],
+              ["2023-01-16", 24.8, 35.4, 15],
+              ["2023-01-17", 23.9, 35.1, 20],
+              ["2023-01-18", 24.2, 35.3, 18],
+              ["2023-01-19", 25.1, 35.0, 12]
+            ],
+            title: "ARGO Float Data Sample"
+          }
+        };
+        
+        botResponse = { 
+          sender: "bot", 
+          text: "Here's the data table you requested. Click the visualization button to view it.", 
+          timestamp: new Date(),
+          hasVisualization: true,
+          visualization: visualizationData
+        };
+      }
+      else if (input.toLowerCase().includes("map") || input.toLowerCase().includes("location")) {
+        visualizationData = {
+          type: "map",
+          data: {
+            locations: [
+              { lat: 37.7749, lng: -122.4194, name: "Float #7901", temp: 15.6, salinity: 34.5 },
+              { lat: 34.0522, lng: -118.2437, name: "Float #7902", temp: 18.2, salinity: 35.1 },
+              { lat: 32.7157, lng: -117.1611, name: "Float #7903", temp: 19.8, salinity: 34.8 },
+              { lat: 36.7783, lng: -119.4179, name: "Float #7904", temp: 17.4, salinity: 35.3 }
+            ],
+            center: { lat: 36.5, lng: -119.5 },
+            zoom: 6,
+            title: "ARGO Float Locations in Pacific Ocean"
+          }
+        };
+        
+        botResponse = { 
+          sender: "bot", 
+          text: "I've created a map showing ARGO float locations. Click the visualization button to view it.", 
+          timestamp: new Date(),
+          hasVisualization: true,
+          visualization: visualizationData
+        };
+      }
       else if (input.toLowerCase().includes("data") || input.toLowerCase().includes("argo")) {
         botResponse = { 
           sender: "bot", 
           text: "The ARGO float system consists of over 3,900 robotic floats that measure temperature, salinity, and other ocean properties. Would you like to see specific data from a particular region or time period?", 
-          timestamp: new Date() 
+          timestamp: new Date(),
+          hasVisualization: false
         };
       }
       else if (input.toLowerCase().includes("hello") || input.toLowerCase().includes("hi")) {
         botResponse = { 
           sender: "bot", 
           text: "Hello! I'm here to help you explore and understand ARGO float data. What would you like to know?", 
-          timestamp: new Date() 
+          timestamp: new Date(),
+          hasVisualization: false
         };
       }
       else {
         botResponse = { 
           sender: "bot", 
           text: "I'm processing your request. Is there specific ARGO data you're interested in exploring further?", 
-          timestamp: new Date() 
+          timestamp: new Date(),
+          hasVisualization: false
         };
       }
       
@@ -112,11 +169,11 @@ export default function ChatPage() {
       { 
         sender: "bot", 
         text: "Hello! I'm your ARGO data assistant. How can I help you today?", 
-        timestamp: new Date() 
+        timestamp: new Date(),
+        hasVisualization: false
       }
     ]);
-    setPlotData(null);
-    setShowCanvas(false);
+    setActiveVisualization(null);
   };
 
   const switchChatSession = (id) => {
@@ -134,16 +191,26 @@ export default function ChatPage() {
       { 
         sender: "bot", 
         text: `Welcome back to "${chatSessions.find(s => s.id === id)?.title}". How can I help you?`, 
-        timestamp: new Date() 
+        timestamp: new Date(),
+        hasVisualization: false
       }
     ]);
+    setActiveVisualization(null);
+  };
+
+  const showVisualization = (visualizationData) => {
+    setActiveVisualization(visualizationData);
+  };
+
+  const closeVisualization = () => {
+    setActiveVisualization(null);
   };
 
   const suggestedQuestions = [
     "Show me temperature data from the Pacific",
     "Plot salinity variations over time",
-    "What's the latest data from float #7901?",
-    "Compare data from different ocean regions"
+    "Create a table with recent ARGO data",
+    "Show ARGO float locations on a map"
   ];
 
   const handleSuggestionClick = (question) => {
@@ -167,25 +234,8 @@ export default function ChatPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="bg-[#A6B1E1] p-2 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-          </div>
           <h1 className="text-2xl font-bold">💬 ARGO Data Assistant</h1>
         </div>
-        
-        <button 
-          onClick={() => setShowCanvas(!showCanvas)}
-          className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-all ${
-            showCanvas ? "bg-[#DCD6F7] text-[#424874]" : "bg-[#A6B1E1] text-[#F4EEFF] hover:bg-[#DCD6F7] hover:text-[#424874]"
-          }`}
-        >
-          <span>{showCanvas ? "Hide Visualizations" : "Show Visualizations"}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-          </svg>
-        </button>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -240,7 +290,7 @@ export default function ChatPage() {
         )}
 
         {/* Chat Column */}
-        <div className={`flex flex-col ${showCanvas ? "w-full md:w-1/2" : "w-full"} transition-all duration-300`}>
+        <div className="flex flex-col w-full transition-all duration-300">
           <div className="flex-1 overflow-hidden flex flex-col p-4">
             {/* Suggested Questions */}
             <div className="mb-4">
@@ -285,7 +335,19 @@ export default function ChatPage() {
                           {m.sender === "user" ? "You" : "ARGO Assistant"} • {formatTime(m.timestamp)}
                         </span>
                       </div>
-                      <p className="text-sm">{m.text}</p>
+                      <p className="text-sm mb-2">{m.text}</p>
+                      
+                      {m.hasVisualization && (
+                        <button 
+                          onClick={() => showVisualization(m.visualization)}
+                          className="self-start flex items-center space-x-1 text-xs bg-[#A6B1E1] text-[#F4EEFF] px-2 py-1 rounded mt-1 hover:bg-opacity-80 transition"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <span>View Visualization</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -345,31 +407,31 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Canvas Column - Only shown when toggled */}
-        {showCanvas && (
-          <div className="w-full md:w-1/2 border-l border-[#DCD6F7] bg-[#A6B1E1] p-4 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-[#F4EEFF]">Data Visualizations</h2>
-              <div className="flex space-x-2">
-                <button className="text-xs bg-[#DCD6F7] text-[#424874] px-3 py-1 rounded-lg hover:bg-[#F4EEFF] transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                <button className="text-xs bg-[#DCD6F7] text-[#424874] px-3 py-1 rounded-lg hover:bg-[#F4EEFF] transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                </button>
-              </div>
+      {/* Visualization Popup */}
+      {activeVisualization && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#A6B1E1] rounded-xl w-full max-w-4xl h-5/6 flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-[#DCD6F7]">
+              <h2 className="text-xl font-semibold text-[#424874]">
+                {activeVisualization.data.title || "Data Visualization"}
+              </h2>
+              <button 
+                onClick={closeVisualization}
+                className="text-[#424874] hover:text-[#F4EEFF] p-1 rounded-full hover:bg-[#424874] transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="flex-1 rounded-lg bg-[#424874] p-4 overflow-auto">
-              <Canvas plotData={plotData} />
+            <div className="flex-1 p-4 overflow-auto">
+              <Canvas visualization={activeVisualization} />
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

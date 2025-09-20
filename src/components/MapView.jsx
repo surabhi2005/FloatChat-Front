@@ -93,11 +93,11 @@ export default function MapView({ floats }) {
         </div>
 
         {/* Map Container */}
-        <div className="flex-1 rounded-lg overflow-hidden relative">
+        <div className="w-full h-full">
           <MapContainer 
             center={[0, 80]} 
             zoom={3} 
-            className="h-full w-full"
+            className="h-full w-full relative z-0"
             zoomControl={false}
           >
             <TileLayer
