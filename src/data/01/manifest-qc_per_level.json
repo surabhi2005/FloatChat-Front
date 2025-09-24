@@ -1,0 +1,223 @@
+{
+  "layer": "qc_per_level",
+  "csv_files": [
+    "..\\output\\2025\\01\\20250101_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250102_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250103_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250104_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250105_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250106_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250107_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250108_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250109_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250110_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250111_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250112_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250113_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250114_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250115_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250116_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250117_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250118_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250119_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250120_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250121_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250122_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250123_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250124_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250125_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250126_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250127_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250128_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250129_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250130_prof\\argo_qc_per_level.csv",
+    "..\\output\\2025\\01\\20250131_prof\\argo_qc_per_level.csv"
+  ],
+  "csv_total_rows": 3371372,
+  "parquet_file": "..\\parquet\\2025\\01\\qc_per_level.parquet",
+  "parquet_rows": 3371372,
+  "matches": true,
+  "issues": [],
+  "null_summary": {
+    "profile_index": {
+      "non_null": 3371372,
+      "total": 3371372
+    },
+    "PRES": {
+      "non_null": 1608083,
+      "total": 3371372
+    },
+    "TEMP": {
+      "non_null": 1607084,
+      "total": 3371372
+    },
+    "PSAL": {
+      "non_null": 1596481,
+      "total": 3371372
+    }
+  },
+  "sample_csv_head": {
+    "profile_index": [
+      0,
+      0,
+      0
+    ],
+    "platform_number": [
+      5906527,
+      5906527,
+      5906527
+    ],
+    "juld": [
+      "1970-01-01 00:00:00.000027394",
+      "1970-01-01 00:00:00.000027394",
+      "1970-01-01 00:00:00.000027394"
+    ],
+    "level_index": [
+      0,
+      1,
+      2
+    ],
+    "PRES": [
+      4.400000095367432,
+      6.0,
+      8.0
+    ],
+    "PRES_QC": [
+      1,
+      1,
+      1
+    ],
+    "PRES_ADJUSTED": [
+      4.590000152587891,
+      6.190000057220459,
+      8.1899995803833
+    ],
+    "PRES_ADJUSTED_ERROR": [
+      2.400000095367432,
+      2.400000095367432,
+      2.400000095367432
+    ],
+    "TEMP": [
+      10.85200023651123,
+      10.85200023651123,
+      10.85200023651123
+    ],
+    "TEMP_QC": [
+      1,
+      1,
+      1
+    ],
+    "TEMP_ADJUSTED": [
+      10.85200023651123,
+      10.85200023651123,
+      10.85200023651123
+    ],
+    "TEMP_ADJUSTED_ERROR": [
+      0.0020000000949949,
+      0.0020000000949949,
+      0.0020000000949949
+    ],
+    "PSAL": [
+      34.02299880981445,
+      34.02299880981445,
+      34.02299880981445
+    ],
+    "PSAL_QC": [
+      1,
+      1,
+      1
+    ],
+    "PSAL_ADJUSTED": [
+      34.022911071777344,
+      34.022911071777344,
+      34.022911071777344
+    ],
+    "PSAL_ADJUSTED_ERROR": [
+      0.050000000745058,
+      0.050000000745058,
+      0.050000000745058
+    ]
+  },
+  "sample_parquet_head": {
+    "profile_index": [
+      0,
+      0,
+      0
+    ],
+    "platform_number": [
+      5906527,
+      5906527,
+      5906527
+    ],
+    "juld": [
+      "1970-01-01 00:00:00.000027394+00:00",
+      "1970-01-01 00:00:00.000027394+00:00",
+      "1970-01-01 00:00:00.000027394+00:00"
+    ],
+    "level_index": [
+      0,
+      1,
+      2
+    ],
+    "PRES": [
+      4.400000095367432,
+      6.0,
+      8.0
+    ],
+    "PRES_QC": [
+      1,
+      1,
+      1
+    ],
+    "PRES_ADJUSTED": [
+      4.590000152587891,
+      6.190000057220459,
+      8.1899995803833
+    ],
+    "PRES_ADJUSTED_ERROR": [
+      2.400000095367432,
+      2.400000095367432,
+      2.400000095367432
+    ],
+    "TEMP": [
+      10.85200023651123,
+      10.85200023651123,
+      10.85200023651123
+    ],
+    "TEMP_QC": [
+      1,
+      1,
+      1
+    ],
+    "TEMP_ADJUSTED": [
+      10.85200023651123,
+      10.85200023651123,
+      10.85200023651123
+    ],
+    "TEMP_ADJUSTED_ERROR": [
+      0.0020000000949949,
+      0.0020000000949949,
+      0.0020000000949949
+    ],
+    "PSAL": [
+      34.02299880981445,
+      34.02299880981445,
+      34.02299880981445
+    ],
+    "PSAL_QC": [
+      1,
+      1,
+      1
+    ],
+    "PSAL_ADJUSTED": [
+      34.022911071777344,
+      34.022911071777344,
+      34.022911071777344
+    ],
+    "PSAL_ADJUSTED_ERROR": [
+      0.050000000745058,
+      0.050000000745058,
+      0.050000000745058
+    ]
+  }
+}

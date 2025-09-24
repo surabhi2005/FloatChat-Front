@@ -10,7 +10,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   };
 
   return (
-    <aside className={`bg-[#424874] text-[#F4EEFF] w-64 p-4 shadow-lg z-10 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static fixed inset-y-0 left-0 mt-16 lg:mt-0 overflow-y-auto`}>
+    <aside className={`bg-gray-800 text-gray-100 w-64 p-4 shadow-lg z-10 transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static fixed inset-y-0 left-0 mt-16 lg:mt-0 overflow-y-auto`}>
       <nav className="space-y-2">
         <div className="p-4">
           <h2 className="text-lg font-semibold mb-4 flex items-center">
@@ -23,7 +23,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -35,7 +35,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/analytics" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/analytics') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/analytics') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -47,7 +47,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/map-view" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/map-view') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/map-view') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24极" stroke="currentColor">
@@ -59,8 +59,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             </li>
             <li>
               <Link 
+                to="/map-detailed" 
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/map-detailed') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Detailed Map Analytics
+              </Link>
+            </li>
+            <li>
+              <Link 
                 to="/reports" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/reports') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/reports') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,7 +86,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/polygon" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/user-management') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/polygon') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -86,7 +98,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/interact" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/user-management') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/interact') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +110,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/globe" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/user-management') ? 'bg-[#A6B1E1] text-[#424874]' : 'hover:bg-[#A6B1E1] hover:text-[#424874]'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/globe') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

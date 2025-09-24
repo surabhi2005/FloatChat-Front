@@ -1,0 +1,371 @@
+{
+  "layer": "metadata_full",
+  "csv_files": [
+    "..\\output\\2025\\01\\20250101_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250102_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250103_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250104_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250105_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250106_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250107_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250108_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250109_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250110_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250111_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250112_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250113_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250114_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250115_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250116_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250117_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250118_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250119_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250120_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250121_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250122_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250123_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250124_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250125_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250126_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250127_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250128_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250129_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250130_prof\\argo_metadata_full.csv",
+    "..\\output\\2025\\01\\20250131_prof\\argo_metadata_full.csv"
+  ],
+  "csv_total_rows": 2434,
+  "parquet_file": "..\\parquet\\2025\\01\\metadata_full.parquet",
+  "parquet_rows": 2434,
+  "matches": true,
+  "issues": [],
+  "null_summary": {
+    "PLATFORM_NUMBER": {
+      "non_null": 2434,
+      "total": 2434
+    }
+  },
+  "sample_csv_head": {
+    "DATA_TYPE": [
+      "Argo profile",
+      "Argo profile",
+      "Argo profile"
+    ],
+    "FORMAT_VERSION": [
+      3.1,
+      3.1,
+      3.1
+    ],
+    "HANDBOOK_VERSION": [
+      1.2,
+      1.2,
+      1.2
+    ],
+    "REFERENCE_DATE_TIME": [
+      19500101000000,
+      19500101000000,
+      19500101000000
+    ],
+    "DATE_CREATION": [
+      20250101052756,
+      20250101052756,
+      20250101052756
+    ],
+    "DATE_UPDATE": [
+      20250905053855,
+      20250905053855,
+      20250905053855
+    ],
+    "PLATFORM_NUMBER": [
+      5906527,
+      5905521,
+      5906256
+    ],
+    "PROJECT_NAME": [
+      "UW, SOCCOM",
+      "Argo Australia",
+      "UW, Argo"
+    ],
+    "PI_NAME": [
+      "STEPHEN RISER/KEN JOHNSON",
+      "Peter Oke",
+      "STEPHEN RISER"
+    ],
+    "STATION_PARAMETERS": [
+      "PRES            TEMP            PSAL",
+      "PRES            TEMP            PSAL",
+      "PRES            TEMP            PSAL"
+    ],
+    "CYCLE_NUMBER": [
+      94.0,
+      96.0,
+      168.0
+    ],
+    "DIRECTION": [
+      "A",
+      "A",
+      "A"
+    ],
+    "DATA_CENTRE": [
+      "AO",
+      "CS",
+      "AO"
+    ],
+    "DC_REFERENCE": [
+      "9157",
+      "5905521/96",
+      "8400"
+    ],
+    "DATA_STATE_INDICATOR": [
+      "2C",
+      "2B",
+      "2C"
+    ],
+    "DATA_MODE": [
+      "D",
+      "A",
+      "D"
+    ],
+    "PLATFORM_TYPE": [
+      "APEX",
+      "NAVIS_EBR",
+      "APEX"
+    ],
+    "FLOAT_SERIAL_NO": [
+      9258,
+      1334,
+      8804
+    ],
+    "FIRMWARE_VERSION": [
+      "022721",
+      "ARGO 170425",
+      "121119"
+    ],
+    "WMO_INST_TYPE": [
+      846,
+      869,
+      846
+    ],
+    "JULD": [
+      27394.965810185186,
+      27394.93756944445,
+      27394.93283564815
+    ],
+    "JULD_QC": [
+      1,
+      1,
+      1
+    ],
+    "JULD_LOCATION": [
+      27395.04212962963,
+      27394.947916666668,
+      27395.02731481481
+    ],
+    "LATITUDE": [
+      -43.513,
+      -8.2485,
+      -43.034
+    ],
+    "LONGITUDE": [
+      35.468,
+      105.7938,
+      134.931
+    ],
+    "POSITION_QC": [
+      1,
+      1,
+      1
+    ],
+    "POSITIONING_SYSTEM": [
+      "GPS",
+      "GPS",
+      "IRIDIUM"
+    ],
+    "PROFILE_PRES_QC": [
+      "A",
+      "A",
+      "A"
+    ],
+    "PROFILE_TEMP_QC": [
+      "B",
+      "A",
+      "B"
+    ],
+    "PROFILE_PSAL_QC": [
+      "B",
+      "A",
+      "B"
+    ],
+    "VERTICAL_SAMPLING_SCHEME": [
+      "Primary sampling: mixed [deeper than nominal 985dbar: discrete; nominal 985dbar to surface: 2dbar-bin averaged]",
+      "Primary sampling: averaged []",
+      "Primary sampling: mixed [deeper than nominal 985dbar: discrete; nominal 985dbar to surface: 2dbar-bin averaged]"
+    ],
+    "CONFIG_MISSION_NUMBER": [
+      94.0,
+      2.0,
+      168.0
+    ]
+  },
+  "sample_parquet_head": {
+    "DATA_TYPE": [
+      "Argo profile",
+      "Argo profile",
+      "Argo profile"
+    ],
+    "FORMAT_VERSION": [
+      3.1,
+      3.1,
+      3.1
+    ],
+    "HANDBOOK_VERSION": [
+      1.2,
+      1.2,
+      1.2
+    ],
+    "REFERENCE_DATE_TIME": [
+      "1970-01-01 05:25:00.101000+00:00",
+      "1970-01-01 05:25:00.101000+00:00",
+      "1970-01-01 05:25:00.101000+00:00"
+    ],
+    "DATE_CREATION": [
+      "1970-01-01 05:37:30.101052756+00:00",
+      "1970-01-01 05:37:30.101052756+00:00",
+      "1970-01-01 05:37:30.101052756+00:00"
+    ],
+    "DATE_UPDATE": [
+      "1970-01-01 05:37:30.905053855+00:00",
+      "1970-01-01 05:37:30.905053855+00:00",
+      "1970-01-01 05:37:30.905053855+00:00"
+    ],
+    "PLATFORM_NUMBER": [
+      5906527,
+      5905521,
+      5906256
+    ],
+    "PROJECT_NAME": [
+      "UW, SOCCOM",
+      "Argo Australia",
+      "UW, Argo"
+    ],
+    "PI_NAME": [
+      "STEPHEN RISER/KEN JOHNSON",
+      "Peter Oke",
+      "STEPHEN RISER"
+    ],
+    "STATION_PARAMETERS": [
+      "PRES            TEMP            PSAL",
+      "PRES            TEMP            PSAL",
+      "PRES            TEMP            PSAL"
+    ],
+    "CYCLE_NUMBER": [
+      94,
+      96,
+      168
+    ],
+    "DIRECTION": [
+      "A",
+      "A",
+      "A"
+    ],
+    "DATA_CENTRE": [
+      "AO",
+      "CS",
+      "AO"
+    ],
+    "DC_REFERENCE": [
+      "NaT",
+      "NaT",
+      "NaT"
+    ],
+    "DATA_STATE_INDICATOR": [
+      "2C",
+      "2B",
+      "2C"
+    ],
+    "DATA_MODE": [
+      "D",
+      "A",
+      "D"
+    ],
+    "PLATFORM_TYPE": [
+      "APEX",
+      "NAVIS_EBR",
+      "APEX"
+    ],
+    "FLOAT_SERIAL_NO": [
+      "9258",
+      "1334",
+      "8804"
+    ],
+    "FIRMWARE_VERSION": [
+      "022721",
+      "ARGO 170425",
+      "121119"
+    ],
+    "WMO_INST_TYPE": [
+      846,
+      869,
+      846
+    ],
+    "JULD": [
+      "1970-01-01 00:00:00.000027394+00:00",
+      "1970-01-01 00:00:00.000027394+00:00",
+      "1970-01-01 00:00:00.000027394+00:00"
+    ],
+    "JULD_QC": [
+      "1970-01-01 00:00:00.000000001+00:00",
+      "1970-01-01 00:00:00.000000001+00:00",
+      "1970-01-01 00:00:00.000000001+00:00"
+    ],
+    "JULD_LOCATION": [
+      "1970-01-01 00:00:00.000027395+00:00",
+      "1970-01-01 00:00:00.000027394+00:00",
+      "1970-01-01 00:00:00.000027395+00:00"
+    ],
+    "LATITUDE": [
+      -43.513,
+      -8.2485,
+      -43.034
+    ],
+    "LONGITUDE": [
+      35.468,
+      105.7938,
+      134.931
+    ],
+    "POSITION_QC": [
+      1,
+      1,
+      1
+    ],
+    "POSITIONING_SYSTEM": [
+      "GPS",
+      "GPS",
+      "IRIDIUM"
+    ],
+    "PROFILE_PRES_QC": [
+      "A",
+      "A",
+      "A"
+    ],
+    "PROFILE_TEMP_QC": [
+      "B",
+      "A",
+      "B"
+    ],
+    "PROFILE_PSAL_QC": [
+      "B",
+      "A",
+      "B"
+    ],
+    "VERTICAL_SAMPLING_SCHEME": [
+      "Primary sampling: mixed [deeper than nominal 985dbar: discrete; nominal 985dbar to surface: 2dbar-bin averaged]",
+      "Primary sampling: averaged []",
+      "Primary sampling: mixed [deeper than nominal 985dbar: discrete; nominal 985dbar to surface: 2dbar-bin averaged]"
+    ],
+    "CONFIG_MISSION_NUMBER": [
+      94,
+      2,
+      168
+    ]
+  }
+}

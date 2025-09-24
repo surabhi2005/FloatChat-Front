@@ -1,169 +1,505 @@
-import React, { useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
-import { Icon } from "leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// Custom marker icons
-const floatIcon = new Icon({
-  iconUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDIyQzE3LjUyMjggMjIgMjIgMTcuNTIyOCAyMiAxMkMyMiA2LjQ3NzE1IDE3LjUyMjggMiAxMiAyQzYuNDc3MTUgMiAyIDYuNDc3MTUgMiAxMkMyIDE3LjUyMjggNi40NzcxNSAyMiAxMiAyMloiIGZpbGw9IiM4NkI2RjYiLz4KPHBhdGggZD0iTTEyIDE2QzE0LjIwOTEgMTYgMTYgMTQuMjA5MSAxNiAxMkMxNiA5Ljc5MDg2IDE0LjIwOTEgOCAxMiA4QzkuNzkwODYgOCA4IDkuNzkwODYgOCAxMkM4IDE0LjIwOTEgOS43OTA4NiAxNiAxMiAxNloiIGZpbGw9IiNCNEQ0RkYiLz4KPHBhdGggZD0iTTEyIDEzQzEyLjU1MjMgMTMgMTMgMTIuNTUyMyAxMyAxMkMxMyAxMS40NDc3IDEyLjU1MjMgMTEgMTIgMTFDMTEuNDQ3NyAxMSAxMSAxMS40NDc3IDExIDEyQzExIDEyLjU1MjMgMTEuNDQ3NyAxMyAxMiAxM1oiIGZpbGw9IiMxNzZCODciLz4KPC9zdmc+Cg==",
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12]
+// Fix for default markers in react-leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const activeFloatIcon = new Icon({
-  iconUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNCNEQ0RkYiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iOCIgZmlsbD0iIzE3NkI4NyIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI0IiBmaWxsPSIjRUVGNUVGIi8+Cjwvc3ZnPgo=",
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
-});
+// Custom oceanographic float icon
+const createFloatIcon = (color = '#3B82F6') => {
+  return new L.Icon({
+    iconUrl: `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='${color}'%3E%3Cpath d='M16 0c-5.523 0-10 4.477-10 10 0 10 10 22 10 22s10-12 10-22c0-5.523-4.477-10-10-10zm0 16c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z'/%3E%3C/svg%3E`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -24],
+  });
+};
 
-export default function MapView({ floats }) {
+const MapView = () => {
+  const [data, setData] = useState([]);
+  const [mapStyle, setMapStyle] = useState('satellite');
   const [selectedFloat, setSelectedFloat] = useState(null);
-  const [mapStyle, setMapStyle] = useState("standard"); // standard, satellite, dark
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const mapRef = useRef(null);
 
-  // Default floats if none provided
-  const defaultFloats = [
-    { id: 1, name: "ARGO Float #7901", lat: 20, lon: -120, active: true, temperature: "12.4°C", salinity: "34.5 PSU", depth: "1000m" },
-    { id: 2, name: "ARGO Float #7902", lat: 10, lon: -100, active: true, temperature: "25.1°C", salinity: "35.2 PSU", depth: "500m" },
-    { id: 3, name: "ARGO Float #7903", lat: -15, lon: -80, active: false, temperature: "8.7°C", salinity: "34.1 PSU", depth: "2000m" },
-    { id: 4, name: "ARGO Float #7904", lat: 35, lon: 150, active: true, temperature: "18.3°C", salinity: "34.8 PSU", depth: "800m" },
-    { id: 5, name: "ARGO Float #7905", lat: -30, lon: 50, active: true, temperature: "14.2°C", salinity: "35.0 PSU", depth: "1200m" }
-  ];
+  useEffect(() => {
+    // Enhanced oceanographic data with more realistic information
+    const oceanographicData = [
+      {
+        id: 1,
+        platform: "ARGO-7901",
+        latitude: -15.9896,
+        longitude: 90.3067,
+        project: "Argo Australia",
+        pi: "Peter OKE",
+        region: "Indian Ocean",
+        temperature: "29.4°C",
+        salinity: "34.8 PSU",
+        depth: "1000m",
+        status: "Active",
+        lastUpdate: "2 hours ago"
+      },
+      {
+        id: 2,
+        platform: "ARGO-7902",
+        latitude: -43.037,
+        longitude: 130.202,
+        project: "UW Argo",
+        pi: "STEPHEN RISER",
+        region: "Southern Ocean",
+        temperature: "2.1°C",
+        salinity: "34.2 PSU",
+        depth: "2000m",
+        status: "Active",
+        lastUpdate: "1 hour ago"
+      },
+      {
+        id: 3,
+        platform: "ARGO-7903",
+        latitude: -41.3693,
+        longitude: 142.6767,
+        project: "Argo Australia",
+        pi: "Christina SCHALLENBERG",
+        region: "Tasman Sea",
+        temperature: "18.7°C",
+        salinity: "35.1 PSU",
+        depth: "1500m",
+        status: "Active",
+        lastUpdate: "3 hours ago"
+      },
+      {
+        id: 4,
+        platform: "ARGO-7904",
+        latitude: -54.2695,
+        longitude: 47.7197,
+        project: "GO-BGC WHOI",
+        pi: "DAVID NICHOLSON",
+        region: "South Atlantic",
+        temperature: "4.2°C",
+        salinity: "34.5 PSU",
+        depth: "1800m",
+        status: "Active",
+        lastUpdate: "4 hours ago"
+      },
+      {
+        id: 5,
+        platform: "ARGO-7905",
+        latitude: -18.7639,
+        longitude: 85.0806,
+        project: "Argo SIO",
+        pi: "DEAN ROEMMICH",
+        region: "Indian Ocean",
+        temperature: "28.9°C",
+        salinity: "35.3 PSU",
+        depth: "1200m",
+        status: "Active",
+        lastUpdate: "1 hour ago"
+      },
+      {
+        id: 6,
+        platform: "ARGO-7906",
+        latitude: -2.4811,
+        longitude: 99.3107,
+        project: "Argo SIO",
+        pi: "SARAH PURKEY",
+        region: "Indian Ocean",
+        temperature: "30.1°C",
+        salinity: "34.9 PSU",
+        depth: "800m",
+        status: "Active",
+        lastUpdate: "2 hours ago"
+      },
+      {
+        id: 7,
+        platform: "ARGO-7907",
+        latitude: -33.8688,
+        longitude: 151.2093,
+        project: "Argo Australia",
+        pi: "Bob MARTIN",
+        region: "Tasman Sea",
+        temperature: "22.3°C",
+        salinity: "35.4 PSU",
+        depth: "1400m",
+        status: "Maintenance",
+        lastUpdate: "1 day ago"
+      },
+      {
+        id: 8,
+        platform: "ARGO-7908",
+        latitude: -10.5,
+        longitude: 55.3,
+        project: "Argo Indian Ocean",
+        pi: "Test PI 1",
+        region: "Indian Ocean",
+        temperature: "27.8°C",
+        salinity: "35.0 PSU",
+        depth: "1100m",
+        status: "Active",
+        lastUpdate: "3 hours ago"
+      },
+      {
+        id: 9,
+        platform: "ARGO-7909",
+        latitude: -25.2,
+        longitude: 60.7,
+        project: "Argo Indian Ocean",
+        pi: "Test PI 2",
+        region: "Indian Ocean",
+        temperature: "26.5°C",
+        salinity: "35.2 PSU",
+        depth: "1300m",
+        status: "Active",
+        lastUpdate: "2 hours ago"
+      },
+      {
+        id: 10,
+        platform: "ARGO-7910",
+        latitude: 5.6,
+        longitude: 75.0,
+        project: "Argo Indian Ocean",
+        pi: "Test PI 3",
+        region: "Indian Ocean",
+        temperature: "29.2°C",
+        salinity: "34.7 PSU",
+        depth: "900m",
+        status: "Active",
+        lastUpdate: "1 hour ago"
+      }
+    ];
+    
+    setData(oceanographicData);
+  }, []);
 
-  const displayFloats = floats && floats.length > 0 ? floats : defaultFloats;
+  // Set timeout for map loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!mapLoaded) {
+        setMapError(true);
+      }
+    }, 10000); // 10 seconds timeout
 
-  // Tile layers for different map styles
-  const tileLayers = {
-    standard: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    return () => clearTimeout(timer);
+  }, [mapLoaded]);
+
+  // Handle map initialization
+  const handleMapReady = () => {
+    console.log('Map is ready!');
+    setMapLoaded(true);
+    if (mapRef.current) {
+      mapRef.current.invalidateSize();
+    }
   };
 
-  const attributions = {
-    standard: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
-    satellite: "&copy; <a href='https://www.esri.com/'>Esri</a>",
-    dark: "&copy; <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors, &copy; <a href='https://carto.com/attributions'>CARTO</a>"
+
+  const mapStyles = {
+    satellite: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    },
+    standard: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    },
+    dark: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }
+  };
+
+  const getStatusColor = (status) => {
+    return status === 'Active' ? '#10B981' : '#F59E0B';
   };
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden shadow-xl border border-[#DCD6F7] bg-gradient-to-br from-[#424874] to-[#A6B1E1] p-4">
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-[#F4EEFF] flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            ARGO Float Locations
-          </h2>
-          
-          <div className="flex space-x-2">
-            <button 
-              onClick={() => setMapStyle("standard")}
-              className={`px-3 py-1 rounded-lg text-xs flex items-center transition ${
-                mapStyle === "standard" 
-                  ? "bg-[#DCD6F7] text-[#424874]" 
-                  : "bg-[#424874] text-[#DCD6F7] hover:bg-[#A6B1E1] hover:text-[#F4EEFF]"
+    <div className="w-full h-full flex flex-col">
+      {/* Header Section */}
+      <div className="flex-shrink-0 p-2 md:p-4 text-center">
+        <h1 className="text-xl md:text-3xl font-bold text-white mb-2">
+          Oceanographic Data Map
+        </h1>
+        <p className="text-sm md:text-base text-blue-200">
+          Real-time monitoring of ARGO float deployments across global oceans
+        </p>
+        
+        {/* Map Style Controls */}
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {Object.keys(mapStyles).map((style) => (
+          <button 
+              key={style}
+              onClick={() => setMapStyle(style)}
+              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 text-xs md:text-sm ${
+                mapStyle === style
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-gray-600/30 text-gray-200 hover:bg-gray-500/40'
               }`}
             >
-              Standard
-            </button>
-            <button 
-              onClick={() => setMapStyle("satellite")}
-              className={`px-3 py-1 rounded-lg text-xs flex items-center transition ${
-                mapStyle === "satellite" 
-                  ? "bg-[#DCD6F7] text-[#424874]" 
-                  : "bg-[#424874] text-[#DCD6F7] hover:bg-[#A6B1E1] hover:text-[#F4EEFF]"
-              }`}
-            >
-              Satellite
-            </button>
-            <button 
-              onClick={() => setMapStyle("dark")}
-              className={`px-3 py-1 rounded-lg text-xs flex items-center transition ${
-                mapStyle === "dark" 
-                  ? "bg-[#DCD6F7] text-[#424874]" 
-                  : "bg-[#424874] text-[#DCD6F7] hover:bg-[#A6B1E1] hover:text-[#F4EEFF]"
-              }`}
-            >
-              Dark
-            </button>
+              {style.charAt(0).toUpperCase() + style.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-0 px-2 md:px-4 pb-2 md:pb-4">
+        <div className="max-w-6xl xl:max-w-7xl mx-auto h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 h-full">
+          {/* Information Panel */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Overview Stats */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-semibold text-white mb-4">System Overview</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-200">Total Floats:</span>
+                  <span className="text-white font-semibold">{data.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-200">Active:</span>
+                  <span className="text-green-400 font-semibold">
+                    {data.filter(f => f.status === 'Active').length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-200">Maintenance:</span>
+                  <span className="text-yellow-400 font-semibold">
+                    {data.filter(f => f.status === 'Maintenance').length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-200">Regions:</span>
+                  <span className="text-white font-semibold">
+                    {new Set(data.map(f => f.region)).size}
+                  </span>
+          </div>
+              </div>
+            </div>
+
+            {/* Selected Float Details */}
+            {selectedFloat && (
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+                <h3 className="text-xl font-semibold text-white mb-4">Float Details</h3>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-blue-200 text-sm">Platform:</span>
+                    <p className="text-white font-medium">{selectedFloat.platform}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Project:</span>
+                    <p className="text-white">{selectedFloat.project}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Principal Investigator:</span>
+                    <p className="text-white">{selectedFloat.pi}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Region:</span>
+                    <p className="text-white">{selectedFloat.region}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Coordinates:</span>
+                    <p className="text-white">{selectedFloat.latitude.toFixed(4)}°, {selectedFloat.longitude.toFixed(4)}°</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Temperature:</span>
+                    <p className="text-white">{selectedFloat.temperature}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Salinity:</span>
+                    <p className="text-white">{selectedFloat.salinity}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Depth:</span>
+                    <p className="text-white">{selectedFloat.depth}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Status:</span>
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                      selectedFloat.status === 'Active' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {selectedFloat.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-blue-200 text-sm">Last Update:</span>
+                    <p className="text-white">{selectedFloat.lastUpdate}</p>
+                  </div>
           </div>
         </div>
+            )}
 
-        {/* Map Container */}
-        <div className="w-full h-full">
-          <MapContainer 
-            center={[0, 80]} 
-            zoom={3} 
-            className="h-full w-full relative z-0"
-            zoomControl={false}
-          >
-            <TileLayer
-              url={tileLayers[mapStyle]}
-              attribution={attributions[mapStyle]}
-            />
-            <ZoomControl position="bottomright" />
-            
-            {displayFloats.map((f) => (
-              <Marker 
-                key={f.id} 
-                position={[f.lat, f.lon]} 
-                icon={f.active ? activeFloatIcon : floatIcon}
-                eventHandlers={{
-                  click: () => setSelectedFloat(f)
-                }}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold text-[#424874]">{f.name}</h3>
-                    <div className="mt-2 space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Status:</span>
-                        <span className={f.active ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                          {f.active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Temperature:</span>
-                        <span>{f.temperature}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Salinity:</span>
-                        <span>{f.salinity}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Depth:</span>
-                        <span>{f.depth}</span>
-                      </div>
+            {/* Legend */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-semibold text-white mb-4">Legend</h3>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                  <span className="text-blue-200">ARGO Float</span>
+                    </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <span className="text-blue-200">Active Status</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                  <span className="text-blue-200">Maintenance</span>
+                </div>
+              </div>
+            </div>
+              </div>
+              
+          {/* Map Container */}
+          <div className="lg:col-span-3">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              <h3 className="text-xl font-semibold text-white mb-4">Global Ocean Monitoring Network</h3>
+              <div className="relative bg-gray-200 rounded-lg overflow-hidden" style={{ height: '600px', width: '100%' }}>
+                {(!mapLoaded || mapError) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-600 z-10">
+                    <div className="text-center">
+                      {mapError ? (
+                        <>
+                          <div className="text-lg font-semibold mb-2 text-red-600">Map Failed to Load</div>
+                          <div className="text-sm mb-4">Please check your internet connection</div>
+                <button 
+                  onClick={() => {
+                              setMapError(false);
+                              setMapLoaded(false);
+                              window.location.reload();
+                  }}
+                            className="px-4 py-2 bg-gray-600 text-gray-200 rounded hover:bg-gray-700"
+                >
+                            Retry
+                </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-lg font-semibold mb-2">Loading Map...</div>
+                          <div className="text-sm">Please wait while the map loads</div>
+                        </>
+                      )}
                     </div>
                   </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
-
-        {/* Legend */}
-        <div className="mt-3 flex items-center justify-between text-xs text-[#DCD6F7]">
-          <div className="flex items-center space-x-4">
-            <span className="font-medium">Legend:</span>
-            <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 rounded-full bg-[#A6B1E1]"></div>
-              <span>Standard Float</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-4 h-4 rounded-full bg-[#DCD6F7]"></div>
-              <span>Active Float</span>
+                )}
+                <MapContainer
+                  ref={mapRef}
+                  key={mapStyle}
+                  center={[0, 0]}
+                  zoom={2}
+                  style={{ height: '600px', width: '100%', minHeight: '600px' }}
+                  zoomControl={false}
+                  className="rounded-lg"
+                  whenReady={handleMapReady}
+                >
+                  <TileLayer
+                    attribution='&copy; OpenStreetMap contributors'
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  />
+                  <ZoomControl position="bottomright" />
+                  
+                  {data.map((float) => (
+                    <Marker
+                      key={float.id}
+                      position={[float.latitude, float.longitude]}
+                      icon={createFloatIcon(getStatusColor(float.status))}
+                      eventHandlers={{
+                        click: () => setSelectedFloat(float),
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2 min-w-[250px]">
+                          <h3 className="font-bold text-lg text-gray-800 mb-2">{float.platform}</h3>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Project:</span>
+                              <span className="text-gray-800">{float.project}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Region:</span>
+                              <span className="text-gray-800">{float.region}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Temperature:</span>
+                              <span className="text-gray-800">{float.temperature}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Salinity:</span>
+                              <span className="text-gray-800">{float.salinity}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Depth:</span>
+                              <span className="text-gray-800">{float.depth}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Status:</span>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                float.status === 'Active' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {float.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </div>
             </div>
           </div>
-          
-          <div className="text-right">
-            <span>{displayFloats.length} floats displayed</span>
+            {/* Description Section */}
+            <div className="lg:col-span-4 mt-4 md:mt-6 bg-white/10 backdrop-blur-md rounded-xl p-4 md:p-8 border border-white/20">
+              <h2 className="text-lg md:text-2xl font-bold text-white mb-4 md:mb-6">About ARGO Float Network</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold text-blue-300 mb-2 md:mb-3">What are ARGO Floats?</h3>
+                  <p className="text-sm md:text-base text-blue-200 leading-relaxed">
+                    ARGO floats are autonomous oceanographic instruments that drift with ocean currents, 
+                    collecting valuable data about temperature, salinity, and other ocean properties. 
+                    These floats provide crucial information for understanding climate change, ocean circulation, 
+                    and marine ecosystems.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold text-blue-300 mb-2 md:mb-3">Global Coverage</h3>
+                  <p className="text-sm md:text-base text-blue-200 leading-relaxed">
+                    The ARGO network consists of thousands of floats deployed across all major ocean basins. 
+                    Each float operates autonomously for several years, surfacing periodically to transmit 
+                    data via satellite. This creates a comprehensive, real-time view of ocean conditions worldwide.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold text-blue-300 mb-2 md:mb-3">Data Applications</h3>
+                  <p className="text-sm md:text-base text-blue-200 leading-relaxed">
+                    ARGO data is used for weather forecasting, climate research, ocean modeling, and 
+                    understanding marine biodiversity. The information helps scientists track ocean warming, 
+                    sea level rise, and changes in ocean circulation patterns.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold text-blue-300 mb-2 md:mb-3">Real-time Monitoring</h3>
+                  <p className="text-sm md:text-base text-blue-200 leading-relaxed">
+                    This dashboard provides real-time access to ARGO float positions and measurements. 
+                    Click on any float marker to view detailed information about its current status, 
+                    measurements, and operational history.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default MapView;

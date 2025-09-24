@@ -6,9 +6,14 @@ const GlobeView = () => {
   const mountRef = useRef(null);
   const [selectedFloat, setSelectedFloat] = useState(null);
   const [floatsData, setFloatsData] = useState([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [hoverInfo, setHoverInfo] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredFloats, setFilteredFloats] = useState([]);
+  // Deep-dive table filters
+  const [tableFilterSystem, setTableFilterSystem] = useState('all');
+  const [tableFilterProject, setTableFilterProject] = useState('all');
+  const [tableFilterPI, setTableFilterPI] = useState('');
 
   // Your complete data string would go here
   const dataStrings = `{"profile_index":0,"LATITUDE":-15.989618333333333,"LONGITUDE":90.30670166666668,"JULD":1756770920000,"JULD_LOCATION":1756771895000,"REFERENCE_DATE_TIME":-631152000000,"POSITION_QC":1,"POSITIONING_SYSTEM":"GPS","DIRECTION":"A","PLATFORM_NUMBER":5905529,"PROJECT_NAME":"Argo Australia","PI_NAME":"Peter OKE"}
@@ -109,6 +114,44 @@ const GlobeView = () => {
     setFilteredFloats(results);
   }, [searchTerm, floatsData]);
 
+  // Helpers for deep-dive filters
+  const uniqueSystems = Array.from(new Set(floatsData.map(f => f.POSITIONING_SYSTEM))).filter(Boolean);
+  const uniqueProjects = Array.from(new Set(floatsData.map(f => f.PROJECT_NAME))).filter(Boolean);
+
+  const tableRows = floatsData
+    .filter(f => tableFilterSystem === 'all' || f.POSITIONING_SYSTEM === tableFilterSystem)
+    .filter(f => tableFilterProject === 'all' || f.PROJECT_NAME === tableFilterProject)
+    .filter(f => tableFilterPI.trim() === '' || (f.PI_NAME || '').toLowerCase().includes(tableFilterPI.toLowerCase()))
+    .slice(0, 75);
+
+  const exportTableCSV = () => {
+    const esc = (s) => '"' + String(s || '').replace(/"/g, '""') + '"';
+    const headers = ['index','platform','profile','latitude','longitude','positioning','project','pi','juld','juld_location'];
+    const lines = [headers.join(',')];
+    tableRows.forEach((f, i) => {
+      const row = [
+        i + 1,
+        f.PLATFORM_NUMBER,
+        f.profile_index,
+        Number(f.LATITUDE).toFixed(4),
+        Number(f.LONGITUDE).toFixed(4),
+        f.POSITIONING_SYSTEM,
+        esc(f.PROJECT_NAME),
+        esc(f.PI_NAME),
+        new Date(f.JULD).toISOString(),
+        new Date(f.JULD_LOCATION).toISOString()
+      ];
+      lines.push(row.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'floats_75.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     if (floatsData.length === 0) return;
 
@@ -131,7 +174,7 @@ const GlobeView = () => {
     scene.add(directionalLight);
 
     // Create Earth - increased size
-    const earthGeometry = new THREE.SphereGeometry(7, 64, 64);
+    const earthGeometry = new THREE.SphereGeometry(9, 64, 64);
     const earthTexture = new THREE.TextureLoader().load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg');
     const earthMaterial = new THREE.MeshPhongMaterial({ 
       map: earthTexture,
@@ -141,8 +184,55 @@ const GlobeView = () => {
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
 
+    // Latitude/Longitude grid
+    const gridGroup = new THREE.Group();
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x3a3a3a, transparent: true, opacity: 0.6 });
+    const boldMaterial = new THREE.LineBasicMaterial({ color: 0x6b7280, transparent: true, opacity: 0.9 });
+
+    const addLatitude = (latDeg, material) => {
+      const lat = THREE.MathUtils.degToRad(latDeg);
+      const points = [];
+      const r = 9.001; // slightly above surface to avoid z-fighting
+      for (let lon = 0; lon <= 360; lon += 2) {
+        const phi = (90 - THREE.MathUtils.radToDeg(lat)) * (Math.PI / 180);
+        const theta = THREE.MathUtils.degToRad(lon + 180);
+        const x = -(r * Math.sin(phi) * Math.cos(theta));
+        const z = (r * Math.sin(phi) * Math.sin(theta));
+        const y = (r * Math.cos(phi));
+        points.push(new THREE.Vector3(x, y, z));
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geom, material);
+      gridGroup.add(line);
+    };
+
+    const addLongitude = (lonDeg, material) => {
+      const lon = THREE.MathUtils.degToRad(lonDeg);
+      const points = [];
+      const r = 9.001;
+      for (let lat = -89; lat <= 89; lat += 2) {
+        const phi = THREE.MathUtils.degToRad(90 - lat);
+        const theta = THREE.MathUtils.degToRad(THREE.MathUtils.radToDeg(lon) + 180);
+        const x = -(r * Math.sin(phi) * Math.cos(theta));
+        const z = (r * Math.sin(phi) * Math.sin(theta));
+        const y = (r * Math.cos(phi));
+        points.push(new THREE.Vector3(x, y, z));
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geom, material);
+      gridGroup.add(line);
+    };
+
+    // Regular grid every 15°
+    for (let lat = -75; lat <= 75; lat += 15) addLatitude(lat, gridMaterial);
+    for (let lon = -180; lon < 180; lon += 15) addLongitude(lon, gridMaterial);
+    // Bold Equator and Prime Meridian
+    addLatitude(0, boldMaterial);
+    addLongitude(0, boldMaterial);
+    scene.add(gridGroup);
+
     // Add clouds
-    const cloudGeometry = new THREE.SphereGeometry(7.1, 64, 64);
+    const cloudGeometry = new THREE.SphereGeometry(9.2, 64, 64);
     const cloudTexture = new THREE.TextureLoader().load('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-clouds.png');
     const cloudMaterial = new THREE.MeshPhongMaterial({
       map: cloudTexture,
@@ -153,7 +243,7 @@ const GlobeView = () => {
     scene.add(clouds);
 
     // Create atmosphere glow effect
-    const atmosphereGeometry = new THREE.SphereGeometry(7.2, 64, 64);
+    const atmosphereGeometry = new THREE.SphereGeometry(9.3, 64, 64);
     const atmosphereMaterial = new THREE.MeshPhongMaterial({
       color: 0x0099ff,
       transparent: true,
@@ -175,9 +265,10 @@ const GlobeView = () => {
       const phi = (90 - LATITUDE) * (Math.PI / 180);
       const theta = (LONGITUDE + 180) * (Math.PI / 180);
       
-      const x = -(7.2 * Math.sin(phi) * Math.cos(theta));
-      const z = (7.2 * Math.sin(phi) * Math.sin(theta));
-      const y = (7.2 * Math.cos(phi));
+      const radius = 9.3;
+      const x = -(radius * Math.sin(phi) * Math.cos(theta));
+      const z = (radius * Math.sin(phi) * Math.sin(theta));
+      const y = (radius * Math.cos(phi));
       
       // Create marker
       const markerGeometry = new THREE.SphereGeometry(0.12, 16, 16);
@@ -185,6 +276,13 @@ const GlobeView = () => {
       const marker = new THREE.Mesh(markerGeometry, markerMaterial);
       marker.position.set(x, y, z);
       marker.userData = { floatData: data, index };
+
+      // Add a small radial line (spike) above the marker
+      const spikeGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x, y, z),
+        new THREE.Vector3(x * 1.03, y * 1.03, z * 1.03)
+      ]);
+      const spike = new THREE.Line(spikeGeom, new THREE.LineBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 0.8 }));
       
       // Add pulsing animation
       const pulseGeometry = new THREE.SphereGeometry(0.18, 16, 16);
@@ -199,6 +297,7 @@ const GlobeView = () => {
       
       floatGroup.add(marker);
       floatGroup.add(pulse);
+      floatGroup.add(spike);
       floatMeshes.push({ marker, pulse });
     });
     
@@ -209,11 +308,13 @@ const GlobeView = () => {
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.rotateSpeed = 0.5;
-    controls.minDistance = 8;
-    controls.maxDistance = 30;
+    controls.minDistance = 12;
+    controls.maxDistance = 40;
+    controls.autoRotate = autoRotate;
+    controls.autoRotateSpeed = 0.5;
 
     // Set camera position
-    camera.position.z = 20;
+    camera.position.z = 26;
 
     // Add stars background
     const starGeometry = new THREE.BufferGeometry();
@@ -240,8 +341,10 @@ const GlobeView = () => {
       requestAnimationFrame(animate);
       
       // Rotate Earth slowly
-      earth.rotation.y += 0.0005;
-      clouds.rotation.y += 0.0007;
+      if (autoRotate) {
+        earth.rotation.y += 0.0005;
+        clouds.rotation.y += 0.0007;
+      }
       
       // Animate pulse markers
       floatMeshes.forEach(({ pulse }) => {
@@ -293,6 +396,30 @@ const GlobeView = () => {
     
     renderer.domElement.addEventListener('click', onMouseClick);
 
+    // Hover tooltip
+    const onMouseMove = (event) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const mouse = new THREE.Vector2();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(floatGroup.children, true);
+      const hit = intersects.find(i => i.object.userData && i.object.userData.floatData);
+      if (hit) {
+        const d = hit.object.userData.floatData;
+        setHoverInfo({
+          data: d,
+          x: event.clientX,
+          y: event.clientY
+        });
+      } else {
+        setHoverInfo(null);
+      }
+    };
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
+
     // Handle window resize
     const handleResize = () => {
       const newWidth = mountRef.current.clientWidth;
@@ -308,6 +435,7 @@ const GlobeView = () => {
     return () => {
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('click', onMouseClick);
+      renderer.domElement.removeEventListener('mousemove', onMouseMove);
         if (mountRef.current && renderer.domElement && mountRef.current.contains(renderer.domElement)) {
     mountRef.current.removeChild(renderer.domElement);
   }
@@ -339,174 +467,269 @@ const GlobeView = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <header className="p-4 bg-gray-800 shadow-lg flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Argo Floats Globe Viewer</h1>
-          <p className="text-gray-300">Interactive visualization of oceanographic floats</p>
-        </div>
-        <div className="flex space-x-2">
-          <button 
-            onClick={exportData}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export Data
-          </button>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded flex items-center"
-          >
-            {isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
-          </button>
-        </div>
-      </header>
-      
-      <div className="flex flex-1 overflow-hidden">
-        {isSidebarOpen && (
-          <div className="w-80 bg-gray-800 p-4 overflow-y-auto flex flex-col">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold mb-2">Float Explorer</h2>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search floats..."
-                  className="w-full p-2 bg-gray-700 rounded pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <svg className="w-4 h-4 absolute left-2 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <h3 className="font-semibold mb-2">Float List ({filteredFloats.length})</h3>
-              <div className="overflow-y-auto max-h-60">
-                {filteredFloats.map((float, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-2 mb-1 rounded cursor-pointer hover:bg-gray-700 ${selectedFloat && selectedFloat.profile_index === float.profile_index ? 'bg-blue-600' : 'bg-gray-600'}`}
-                    onClick={() => handleFloatSelect(float)}
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-mono">{float.PLATFORM_NUMBER}</span>
-                      <span className="text-xs bg-gray-500 px-1 rounded">{float.profile_index}</span>
-                    </div>
-                    <div className="text-xs text-gray-300 truncate">{float.PROJECT_NAME}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="mt-auto">
-              <div className="bg-gray-700 p-3 rounded mb-4">
-                <h3 className="font-semibold mb-2">Statistics</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>Total Floats:</div>
-                  <div className="text-right">{floatsData.length}</div>
-                  <div>GPS Systems:</div>
-                  <div className="text-right">{floatsData.filter(f => f.POSITIONING_SYSTEM === 'GPS').length}</div>
-                  <div>Iridium Systems:</div>
-                  <div className="text-right">{floatsData.filter(f => f.POSITIONING_SYSTEM === 'IRIDIUM').length}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div ref={mountRef} className="flex-1" />
-        
-        {selectedFloat && (
-          <div className="w-96 bg-gray-800 p-4 overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Float Details</h2>
-              <button 
-                onClick={() => setSelectedFloat(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-700 p-3 rounded">
-                  <div className="text-gray-400 text-sm">Platform Number</div>
-                  <div className="font-mono text-lg">{selectedFloat.PLATFORM_NUMBER}</div>
-                </div>
-                <div className="bg-gray-700 p-3 rounded">
-                  <div className="text-gray-400 text-sm">Profile Index</div>
-                  <div className="text-lg">{selectedFloat.profile_index}</div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-700 p-3 rounded">
-                <div className="text-gray-400 text-sm">Coordinates</div>
-                <div className="text-lg">
-                  {selectedFloat.LATITUDE.toFixed(4)}°N, {selectedFloat.LONGITUDE.toFixed(4)}°E
-                </div>
-              </div>
-              
-              <div className="bg-gray-700 p-3 rounded">
-                <div className="text-gray-400 text-sm">Date/Time</div>
-                <div>{formatDate(selectedFloat.JULD)}</div>
-              </div>
-              
-              <div className="bg-gray-700 p-3 rounded">
-                <div className="text-gray-400 text-sm">Location Date/Time</div>
-                <div>{formatDate(selectedFloat.JULD_LOCATION)}</div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-700 p-3 rounded">
-                  <div className="text-gray-400 text-sm">Positioning System</div>
-                  <div>{selectedFloat.POSITIONING_SYSTEM}</div>
-                </div>
-                <div className="bg-gray-700 p-3 rounded">
-                  <div className="text-gray-400 text-sm">Direction</div>
-                  <div>{selectedFloat.DIRECTION}</div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-700 p-3 rounded">
-                <div className="text-gray-400 text-sm">Project</div>
-                <div>{selectedFloat.PROJECT_NAME}</div>
-              </div>
-              
-              <div className="bg-gray-700 p-3 rounded">
-                <div className="text-gray-400 text-sm">Principal Investigator</div>
-                <div>{selectedFloat.PI_NAME}</div>
-              </div>
-            </div>
-            
-            <div className="mt-6 flex space-x-2">
-              <button 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-                onClick={() => {
-                  // Function to center on this float
-                  console.log("Center on float:", selectedFloat.PLATFORM_NUMBER);
-                }}
-              >
-                Center on Float
-              </button>
-              <button 
-                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 px-4 rounded"
-                onClick={() => setSelectedFloat(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
+    <div className="flex flex-col h-screen text-white bg-black">
+      {/* Title only, no bar */}
+      <div className="py-4 flex justify-center">
+        <h1 className="text-3xl font-extrabold tracking-wide text-white text-center">OCEAN GLOBAL VIEW</h1>
       </div>
       
-      <footer className="p-2 bg-gray-800 text-center text-xs text-gray-400">
+      <div className="flex-1">
+        {/* Globe area */}
+        <div ref={mountRef} className="w-full h-[70vh]" />
+
+        {/* Content directly below globe (compact tools) */}
+        <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="bg-black/95 border border-gray-800 p-4 rounded">
+            <h2 className="text-xl font-bold mb-2 text-white">Float Explorer (Horizontal)</h2>
+            <div className="relative mb-3">
+              <input
+                type="text"
+                placeholder="Search floats..."
+                className="w-full p-2 bg-gray-900 border border-gray-700 rounded pl-8 text-white placeholder-gray-400 focus:outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <svg className="w-4 h-4 absolute left-2 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <div>
+              <table className="w-full text-xs text-left table-fixed border border-gray-800">
+                <colgroup>
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '32%' }} />
+                  <col style={{ width: '32%' }} />
+                </colgroup>
+                <thead className="bg-black/70">
+                  <tr className="text-gray-300">
+                    <th className="px-2 py-1 border border-gray-800">Platform</th>
+                    <th className="px-2 py-1 border border-gray-800">Profile</th>
+                    <th className="px-2 py-1 border border-gray-800">Project</th>
+                    <th className="px-2 py-1 border border-gray-800">PI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredFloats.map((float, index) => (
+                    <tr 
+                      key={index}
+                      className={`text-gray-200 cursor-pointer ${selectedFloat && selectedFloat.profile_index === float.profile_index ? 'bg-gray-700' : 'bg-black/40'} hover:bg-gray-800`}
+                      onClick={() => handleFloatSelect(float)}
+                    >
+                      <td className="px-2 py-1 border border-gray-800 font-mono whitespace-nowrap">{float.PLATFORM_NUMBER}</td>
+                      <td className="px-2 py-1 border border-gray-800 whitespace-nowrap">{float.profile_index}</td>
+                      <td className="px-2 py-1 border border-gray-800 overflow-hidden"><span className="block truncate" title={float.PROJECT_NAME}>{float.PROJECT_NAME}</span></td>
+                      <td className="px-2 py-1 border border-gray-800 overflow-hidden"><span className="block truncate" title={float.PI_NAME}>{float.PI_NAME}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 bg-black/95 border border-gray-800 p-4 rounded">
+            {selectedFloat ? (
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">Float Details</h2>
+                  <button 
+                    onClick={() => setSelectedFloat(null)}
+                    className="text-gray-400 hover:text-gray-200"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Platform Number</div>
+                      <div className="font-mono text-lg text-white">{selectedFloat.PLATFORM_NUMBER}</div>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Profile Index</div>
+                      <div className="text-lg text-white">{selectedFloat.profile_index}</div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                    <div className="text-gray-400 text-sm">Coordinates</div>
+                    <div className="text-lg text-white">
+                      {selectedFloat.LATITUDE.toFixed(4)}°N, {selectedFloat.LONGITUDE.toFixed(4)}°E
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Date/Time</div>
+                      <div className="text-white">{formatDate(selectedFloat.JULD)}</div>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Location Date/Time</div>
+                      <div className="text-white">{formatDate(selectedFloat.JULD_LOCATION)}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Positioning System</div>
+                      <div className="text-white">{selectedFloat.POSITIONING_SYSTEM}</div>
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                      <div className="text-gray-400 text-sm">Direction</div>
+                      <div className="text-white">{selectedFloat.DIRECTION}</div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                    <div className="text-gray-400 text-sm">Project</div>
+                    <div className="text-white">{selectedFloat.PROJECT_NAME}</div>
+                  </div>
+                  <div className="bg-gray-900 border border-gray-700 p-3 rounded">
+                    <div className="text-gray-400 text-sm">Principal Investigator</div>
+                    <div className="text-white">{selectedFloat.PI_NAME}</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400">Select a float from the list to view details.</div>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button 
+                onClick={() => setAutoRotate(!autoRotate)}
+                className="px-3 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300"
+              >
+                {autoRotate ? 'Pause Rotate' : 'Auto Rotate'}
+              </button>
+              <button 
+                onClick={exportData}
+                className="px-3 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300"
+              >
+                Export Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Deep-dive section further down the page */}
+        <section className="mt-6 p-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Fleet summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-black/80 border border-gray-800 rounded-lg p-4">
+                <div className="text-gray-400 text-sm">Total Floats Loaded</div>
+                <div className="text-2xl text-white font-bold">{floatsData.length}</div>
+              </div>
+              <div className="bg-black/80 border border-gray-800 rounded-lg p-4">
+                <div className="text-gray-400 text-sm">GPS / IRIDIUM / ARGOS</div>
+                <div className="text-white font-medium">
+                  {floatsData.filter(f => f.POSITIONING_SYSTEM === 'GPS').length} / {floatsData.filter(f => f.POSITIONING_SYSTEM === 'IRIDIUM').length} / {floatsData.filter(f => f.POSITIONING_SYSTEM === 'ARGOS').length}
+                </div>
+              </div>
+              <div className="bg-black/80 border border-gray-800 rounded-lg p-4">
+                <div className="text-gray-400 text-sm">Projects (unique)</div>
+                <div className="text-white font-medium">{Array.from(new Set(floatsData.map(f => f.PROJECT_NAME))).length}</div>
+              </div>
+            </div>
+
+            {/* 75-float interactive table */}
+            <div className="bg-black/90 border border-gray-800 rounded-xl">
+              <div className="px-4 py-3 border-b border-gray-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <h2 className="text-white text-lg font-semibold">Interactive Float Data (75)</h2>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <select
+                    className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded px-2 py-1"
+                    value={tableFilterSystem}
+                    onChange={e => setTableFilterSystem(e.target.value)}
+                    title="Filter by positioning system"
+                  >
+                    <option value="all">All Systems</option>
+                    {uniqueSystems.map(sys => (
+                      <option key={sys} value={sys}>{sys}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded px-2 py-1 max-w-[16rem]"
+                    value={tableFilterProject}
+                    onChange={e => setTableFilterProject(e.target.value)}
+                    title="Filter by project"
+                  >
+                    <option value="all">All Projects</option>
+                    {uniqueProjects.map(proj => (
+                      <option key={proj} value={proj}>{proj}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Filter PI..."
+                    className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded px-2 py-1"
+                    value={tableFilterPI}
+                    onChange={e => setTableFilterPI(e.target.value)}
+                  />
+                  <button
+                    className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded px-2 py-1"
+                    onClick={() => { setTableFilterSystem('all'); setTableFilterProject('all'); setTableFilterPI(''); }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded px-2 py-1"
+                    onClick={exportTableCSV}
+                  >
+                    Export CSV
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs text-left table-fixed border border-gray-800">
+                  <thead className="bg-black/70">
+                    <tr className="text-gray-300">
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">#</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Platform</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Profile</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Latitude</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Longitude</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Positioning</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Project</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">PI</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">JULD</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">JULD Loc</th>
+                      <th className="px-3 py-2 border border-gray-800 sticky top-0 bg-black/80">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((f, i) => (
+                      <tr key={`${f.PLATFORM_NUMBER}-${f.profile_index}`} className="text-gray-200">
+                        <td className="px-3 py-2 border border-gray-800">{i + 1}</td>
+                        <td className="px-3 py-2 border border-gray-800 font-mono">{f.PLATFORM_NUMBER}</td>
+                        <td className="px-3 py-2 border border-gray-800">{f.profile_index}</td>
+                        <td className="px-3 py-2 border border-gray-800">{Number(f.LATITUDE).toFixed(4)}</td>
+                        <td className="px-3 py-2 border border-gray-800">{Number(f.LONGITUDE).toFixed(4)}</td>
+                        <td className="px-3 py-2 border border-gray-800">
+                          <span className="px-2 py-0.5 rounded bg-gray-900 border border-gray-700 text-gray-300">
+                            {f.POSITIONING_SYSTEM}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 border border-gray-800 whitespace-nowrap max-w-[16rem] truncate">{f.PROJECT_NAME}</td>
+                        <td className="px-3 py-2 border border-gray-800 whitespace-nowrap max-w-[16rem] truncate">{f.PI_NAME}</td>
+                        <td className="px-3 py-2 border border-gray-800 whitespace-nowrap">{formatDate(f.JULD)}</td>
+                        <td className="px-3 py-2 border border-gray-800 whitespace-nowrap">{formatDate(f.JULD_LOCATION)}</td>
+                        <td className="px-3 py-2 border border-gray-800">
+                          <button
+                            className="px-2 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300"
+                            onClick={() => setSelectedFloat(f)}
+                          >
+                            Inspect
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+      
+      <footer className="p-2 bg-black border-t border-gray-800 text-center text-xs text-gray-400">
         Argo Floats Visualization System | {floatsData.length} floats loaded
       </footer>
     </div>

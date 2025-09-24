@@ -1,0 +1,38 @@
+/* Dashboard with 3D Beam Animations */
+.InventoryDash-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background: #000000;
+    color: #FFFFFF;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  /* 3D Beams Wrapper */
+  .beams-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  /* Beams Container Styling */
+  .beams-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  body {
+    background: #000000 !important;
+    background-image: none !important;
+    background-color: #000000 !important;
+  }

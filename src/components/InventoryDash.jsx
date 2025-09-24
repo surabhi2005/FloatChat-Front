@@ -1,553 +1,528 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { Line, Scatter } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import React, { useState } from 'react';
+import { 
+  Database, Download, Eye, BarChart3, MapPin, Clock, 
+  Battery, Wifi, AlertTriangle, CheckCircle, Filter,
+  Search, Grid, List, Settings, Share2, ExternalLink,
+  Thermometer, Droplets, Activity, Waves, Wind, Target,
+  ArrowLeft
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Beams from './Beams';
 
-// Fix for default markers in react-leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+const InventoryDash = () => {
+  const navigate = useNavigate();
+  const [selectedDataset, setSelectedDataset] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale
-);
+  // Comprehensive dataset inventory
+  const datasets = [
+    {
+      id: 1,
+      name: "ARGO Float Indian Ocean – 2023",
+      dataSource: "Argo Global Repository",
+      type: "Temperature, Salinity, Pressure, Oxygen",
+      format: "NetCDF",
+      size: "2.4 GB",
+      updateFrequency: "Daily",
+      coverage: "Indian Ocean",
+      floatId: "ARGO-7901",
+      deploymentDate: "2023-01-15",
+      deploymentLocation: "15.5°N, 87.2°E",
+      status: "Active",
+      lastTransmission: "2024-01-20 14:30:00",
+      batteryLife: "85%",
+      health: "Excellent",
+      visualizations: ["Depth-Time Plot", "Profile Comparison", "Map Trajectory", "Polygon Plots"],
+      accessLevel: "Public",
+      downloadOptions: ["CSV", "NetCDF", "ASCII", "JSON"],
+      recordCount: "1.2M",
+      dataQuality: "Validated",
+      lastAccessed: "Dr. Sarah Chen - Oceanographer",
+      description: "Comprehensive oceanographic data from ARGO float network in the Indian Ocean region, providing real-time temperature, salinity, and pressure measurements."
+    },
+    {
+      id: 2,
+      name: "INCOIS Arabian Sea BGC Parameters",
+      dataSource: "INCOIS - Indian National Centre for Ocean Information Services",
+      type: "Biogeochemical, Chlorophyll, Nutrients",
+      format: "CSV",
+      size: "850 MB",
+      updateFrequency: "Weekly",
+      coverage: "Arabian Sea",
+      floatId: "INCOIS-BGC-001",
+      deploymentDate: "2023-03-22",
+      deploymentLocation: "18.3°N, 68.2°E",
+      status: "Active",
+      lastTransmission: "2024-01-19 09:15:00",
+      batteryLife: "92%",
+      health: "Excellent",
+      visualizations: ["Chlorophyll Maps", "Nutrient Profiles", "BGC Time Series"],
+      accessLevel: "Restricted",
+      downloadOptions: ["CSV", "JSON"],
+      recordCount: "450K",
+      dataQuality: "Pending QC",
+      lastAccessed: "Prof. Rajesh Kumar - Marine Biologist",
+      description: "Biogeochemical parameters including chlorophyll-a, nutrients, and dissolved oxygen from the Arabian Sea monitoring network."
+    },
+    {
+      id: 3,
+      name: "Global ARGO Temperature Profiles",
+      dataSource: "Argo Global Repository",
+      type: "Temperature, Salinity, Pressure",
+      format: "NetCDF",
+      size: "5.8 GB",
+      updateFrequency: "Daily",
+      coverage: "Global",
+      floatId: "ARGO-GLOBAL-2023",
+      deploymentDate: "2023-01-01",
+      deploymentLocation: "Multiple",
+      status: "Active",
+      lastTransmission: "2024-01-20 12:00:00",
+      batteryLife: "78%",
+      health: "Good",
+      visualizations: ["Global Maps", "Depth Profiles", "Time Series", "3D Visualization"],
+      accessLevel: "Public",
+      downloadOptions: ["NetCDF", "CSV", "ASCII"],
+      recordCount: "3.2M",
+      dataQuality: "Validated",
+      lastAccessed: "Dr. Michael Torres - Climate Scientist",
+      description: "Global ocean temperature and salinity profiles from the international ARGO float network, essential for climate monitoring and ocean modeling."
+    },
+    {
+      id: 4,
+      name: "Bay of Bengal Coastal Monitoring",
+      dataSource: "INCOIS Coastal Monitoring Network",
+      type: "Temperature, Salinity, Currents, Waves",
+      format: "SQL Database",
+      size: "1.1 GB",
+      updateFrequency: "Hourly",
+      coverage: "Bay of Bengal",
+      floatId: "INCOIS-COASTAL-001",
+      deploymentDate: "2023-06-10",
+      deploymentLocation: "12.8°N, 84.5°E",
+      status: "Active",
+      lastTransmission: "2024-01-20 15:45:00",
+      batteryLife: "88%",
+      health: "Excellent",
+      visualizations: ["Current Maps", "Wave Heights", "Coastal Profiles", "Real-time Dashboard"],
+      accessLevel: "Admin Only",
+      downloadOptions: ["SQL Export", "CSV", "JSON"],
+      recordCount: "2.8M",
+      dataQuality: "Validated",
+      lastAccessed: "Admin - System Administrator",
+      description: "High-frequency coastal monitoring data from the Bay of Bengal, including current measurements, wave data, and coastal water quality parameters."
+    },
+    {
+      id: 5,
+      name: "Deep Ocean Pressure Sensors",
+      dataSource: "Deep Ocean Research Institute",
+      type: "Pressure, Temperature, Depth",
+      format: "Parquet",
+      size: "3.2 GB",
+      updateFrequency: "Monthly",
+      coverage: "Indian Ocean Deep",
+      floatId: "DEEP-OCEAN-001",
+      deploymentDate: "2023-09-15",
+      deploymentLocation: "5.2°N, 85.7°E",
+      status: "Inactive",
+      lastTransmission: "2023-12-15 08:30:00",
+      batteryLife: "15%",
+      health: "Critical",
+      visualizations: ["Depth Profiles", "Pressure Time Series", "Deep Ocean Maps"],
+      accessLevel: "Restricted",
+      downloadOptions: ["Parquet", "CSV", "NetCDF"],
+      recordCount: "890K",
+      dataQuality: "Validated",
+      lastAccessed: "Dr. Elena Rodriguez - Deep Ocean Researcher",
+      description: "Deep ocean pressure and temperature measurements from specialized deep-sea sensors, providing insights into deep ocean circulation patterns."
+    },
+    {
+      id: 6,
+      name: "Marine Weather Station Network",
+      dataSource: "Marine Weather Service",
+      type: "Wind, Humidity, Atmospheric Pressure, Sea State",
+      format: "JSON",
+      size: "650 MB",
+      updateFrequency: "Every 6 hours",
+      coverage: "Indian Ocean",
+      floatId: "WEATHER-NET-001",
+      deploymentDate: "2023-04-20",
+      deploymentLocation: "10.2°N, 79.4°E",
+      status: "Active",
+      lastTransmission: "2024-01-20 18:00:00",
+      batteryLife: "95%",
+      health: "Excellent",
+      visualizations: ["Weather Maps", "Wind Patterns", "Atmospheric Profiles", "Storm Tracking"],
+      accessLevel: "Public",
+      downloadOptions: ["JSON", "CSV", "XML"],
+      recordCount: "1.8M",
+      dataQuality: "Validated",
+      lastAccessed: "Weather Service - Meteorologist",
+      description: "Comprehensive marine weather data including wind patterns, atmospheric pressure, humidity, and sea state conditions across the Indian Ocean region."
+    }
+  ];
 
-const InterDash = () => {
-  // State for data and UI controls
-  const [argoData, setArgoData] = useState([]);
-  const [selectedFloats, setSelectedFloats] = useState([]);
-  const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // 1 year ago
-    end: new Date()
+  const filteredDatasets = datasets.filter(dataset => {
+    const matchesSearch = dataset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         dataset.dataSource.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         dataset.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterType === 'all' || 
+                         (filterType === 'active' && dataset.status === 'Active') ||
+                         (filterType === 'inactive' && dataset.status === 'Inactive') ||
+                         (filterType === 'public' && dataset.accessLevel === 'Public') ||
+                         (filterType === 'restricted' && dataset.accessLevel === 'Restricted');
+    return matchesSearch && matchesFilter;
   });
-  const [activeTab, setActiveTab] = useState('map');
-  const [isLoading, setIsLoading] = useState(true);
-  const [comparisonProfiles, setComparisonProfiles] = useState({ profile1: null, profile2: null });
-  const [selectedParameter, setSelectedParameter] = useState('temperature');
 
-  // Generate sample data (in a real app, this would come from an API)
-  useEffect(() => {
-    const generateSampleData = () => {
-      const floats = [];
-      const nFloats = 8;
-      
-      for (let i = 0; i < nFloats; i++) {
-        const floatId = `ARGO_${7900000 + i}`;
-        const baseLat = 20 + Math.random() * 40; // Between 20-60°N
-        const baseLon = -160 + Math.random() * 60; // Between 160-100°W
-        
-        const profiles = [];
-        const nProfiles = 15 + Math.floor(Math.random() * 10);
-        
-        for (let j = 0; j < nProfiles; j++) {
-          const daysAgo = nProfiles - j;
-          const date = new Date(Date.now() - daysAgo * 2 * 24 * 60 * 60 * 1000);
-          
-          // Simulate drift
-          const lat = baseLat + (Math.random() - 0.5) * 2;
-          const lon = baseLon + (Math.random() - 0.5) * 3;
-          
-          // Generate profile data
-          const profile = {
-            date,
-            lat,
-            lon,
-            depth: [],
-            temperature: [],
-            salinity: []
-          };
-          
-          // Generate data points at different depths
-          for (let depth = 0; depth <= 2000; depth += 100) {
-            const temp = 25 * Math.exp(-depth/500) + (Math.random() - 0.5) * 0.5;
-            const sal = 35 + 0.01 * depth/100 + (Math.random() - 0.5) * 0.1;
-            
-            profile.depth.push(depth);
-            profile.temperature.push(temp);
-            profile.salinity.push(sal);
-          }
-          
-          profiles.push(profile);
-        }
-        
-        floats.push({
-          id: floatId,
-          name: `Float ${7900000 + i}`,
-          profiles
-        });
-      }
-      
-      setArgoData(floats);
-      setSelectedFloats([floats[0].id, floats[1].id]);
-      setIsLoading(false);
-    };
-    
-    generateSampleData();
-  }, []);
-
-  // Filter data based on selected floats and date range
-  const filteredData = argoData.filter(float => 
-    selectedFloats.includes(float.id)
-  ).map(float => ({
-    ...float,
-    profiles: float.profiles.filter(profile => 
-      profile.date >= dateRange.start && profile.date <= dateRange.end
-    )
-  }));
-
-  // Prepare data for the map
-  const mapData = filteredData.map(float => ({
-    ...float,
-    latestPosition: float.profiles.length > 0 ? float.profiles[float.profiles.length - 1] : null,
-    path: float.profiles.map(profile => [profile.lat, profile.lon])
-  }));
-
-  // Prepare data for depth-time plots
-  const prepareDepthTimeData = (floatId, parameter) => {
-    const float = argoData.find(f => f.id === floatId);
-    if (!float) return null;
-    
-    const data = [];
-    
-    float.profiles.forEach(profile => {
-      profile[parameter].forEach((value, index) => {
-        data.push({
-          x: profile.date.getTime(),
-          y: profile.depth[index],
-          z: value
-        });
-      });
-    });
-    
-    return data;
-  };
-
-  // Prepare data for profile comparisons
-  const prepareProfileData = (profile, parameter) => {
-    if (!profile) return null;
-    
-    return {
-      labels: profile.depth,
-      datasets: [
-        {
-          label: `${parameter} Profile`,
-          data: profile[parameter],
-          borderColor: '#424874',
-          backgroundColor: '#A6B1E1',
-          tension: 0.1
-        }
-      ]
-    };
-  };
-
-  // Chart options
-  const depthTimeOptions = {
-    responsive: true,
-    scales: {
-      x: {
-        type: 'time',
-        time: {
-          unit: 'month'
-        },
-        title: {
-          display: true,
-          text: 'Date'
-        },
-        reverse: true,
-        grid: {
-          color: '#DCD6F7'
-        },
-        ticks: {
-          color: '#F4EEFF'
-        }
-      },
-      y: {
-        reverse: true,
-        title: {
-          display: true,
-          text: 'Depth (m)'
-        },
-        grid: {
-          color: '#DCD6F7'
-        },
-        ticks: {
-          color: '#F4EEFF'
-        }
-      }
-    },
-    plugins: {
-      title: {
-        display: true,
-        text: 'Depth-Time Plot',
-        color: '#F4EEFF'
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            return `Depth: ${context.parsed.y}m, Value: ${context.raw.z}`;
-          }
-        }
-      },
-      legend: {
-        labels: {
-          color: '#F4EEFF'
-        }
-      }
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'Active': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'Inactive': return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      default: return <Clock className="w-4 h-4 text-yellow-500" />;
     }
   };
 
-  const profileOptions = {
-    responsive: true,
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Value',
-          color: '#F4EEFF'
-        },
-        grid: {
-          color: '#DCD6F7'
-        },
-        ticks: {
-          color: '#F4EEFF'
-        }
-      },
-      y: {
-        reverse: true,
-        title: {
-          display: true,
-          text: 'Depth (m)',
-          color: '#F4EEFF'
-        },
-        grid: {
-          color: '#DCD6F7'
-        },
-        ticks: {
-          color: '#F4EEFF'
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        labels: {
-          color: '#F4EEFF'
-        }
-      }
+  const getHealthColor = (health) => {
+    switch (health) {
+      case 'Excellent': return 'text-green-500';
+      case 'Good': return 'text-blue-500';
+      case 'Critical': return 'text-red-500';
+      default: return 'text-yellow-500';
     }
   };
 
-  // Handle float selection
-  const handleFloatSelection = (floatId) => {
-    if (selectedFloats.includes(floatId)) {
-      setSelectedFloats(selectedFloats.filter(id => id !== floatId));
-    } else {
-      setSelectedFloats([...selectedFloats, floatId]);
+  const getAccessLevelColor = (level) => {
+    switch (level) {
+      case 'Public': return 'bg-green-100 text-green-800';
+      case 'Restricted': return 'bg-yellow-100 text-yellow-800';
+      case 'Admin Only': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  // Handle profile selection for comparison
-  const handleProfileSelection = (profile, slot) => {
-    setComparisonProfiles({
-      ...comparisonProfiles,
-      [slot]: profile
-    });
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-64 text-[#A6B1E1]">Loading ARGO data...</div>;
-  }
 
   return (
-    <div className="min-h-screen bg-[#424874] text-[#F4EEFF] p-6">
-      <header className="text-center py-6 mb-8 border-b border-[#A6B1E1]">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#F4EEFF] mb-2">ARGO Profiling Dashboard</h1>
-        <p className="text-[#DCD6F7]">Interactive visualization of ARGO float trajectories and oceanographic data</p>
-      </header>
-      
-      <div className="bg-[#A6B1E1] p-4 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="float-selection">
-          <h3 className="text-lg font-semibold text-[#424874] mb-2">Select Floats:</h3>
-          <div className="flex flex-wrap gap-3">
-            {argoData.map(float => (
-              <label key={float.id} className="flex items-center space-x-2 cursor-pointer">
+    <div className="relative w-full h-screen overflow-hidden bg-black font-sans">
+      {/* 3D Beam Background */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <Beams
+          beamWidth={3}
+          beamHeight={20}
+          beamNumber={15}
+          lightColor="#ffffff"
+          speed={1.5}
+          noiseIntensity={0.2}
+          scale={0.03}
+          rotation={0}
+        />
+      </div>
+
+      {/* Back Button - Top Left */}
+      <div className="absolute top-6 left-6 z-20">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-white text-lg font-bold hover:text-cyan-400 transition-all duration-300 hover:scale-110 drop-shadow-lg hover:drop-shadow-cyan-400/50"
+        >
+          ← Back
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 p-6 h-full overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Ocean Data Inventory
+            </h1>
+            <p className="text-xl text-gray-300">
+              Comprehensive repository of oceanographic datasets from ARGO floats, 
+              coastal monitoring networks, and marine research stations
+            </p>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="mb-6 flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="checkbox"
-                  checked={selectedFloats.includes(float.id)}
-                  onChange={() => handleFloatSelection(float.id)}
-                  className="w-4 h-4 text-[#424874] bg-[#DCD6F7] border-[#424874] rounded focus:ring-[#424874]"
+                  type="text"
+                  placeholder="Search datasets, sources, or parameters..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
                 />
-                <span className="text-sm text-[#424874]">{float.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        
-        <div className="date-selection">
-          <h3 className="text-lg font-semibold text-[#424874] mb-2">Date Range:</h3>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <label className="flex flex-col">
-              <span className="text-sm mb-1 text-[#424874]">Start:</span>
-              <input
-                type="date"
-                value={dateRange.start.toISOString().split('T')[0]}
-                onChange={e => setDateRange({...dateRange, start: new Date(e.target.value)})}
-                className="px-3 py-2 bg-[#DCD6F7] border border-[#424874] rounded-md text-[#424874]"
-              />
-            </label>
-            <label className="flex flex-col">
-              <span className="text-sm mb-1 text-[#424874]">End:</span>
-              <input
-                type="date"
-                value={dateRange.end.toISOString().split('T')[0]}
-                onChange={e => setDateRange({...dateRange, end: new Date(e.target.value)})}
-                className="px-3 py-2 bg-[#DCD6F7] border border-[#424874] rounded-md text-[#424874]"
-              />
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex border-b border-[#A6B1E1] mb-6">
-        <button 
-          className={`px-4 py-2 font-medium ${activeTab === 'map' ? 'text-[#F4EEFF] border-b-2 border-[#F4EEFF]' : 'text-[#DCD6F7] hover:text-[#F4EEFF]'}`}
-          onClick={() => setActiveTab('map')}
-        >
-          Map View
-        </button>
-        <button 
-          className={`px-4 py-2 font-medium ${activeTab === 'depthTime' ? 'text-[#F4EEFF] border-b-2 border-[#F4EEFF]' : 'text-[#DCD6F7] hover:text-[#F4EEFF]'}`}
-          onClick={() => setActiveTab('depthTime')}
-        >
-          Depth-Time Plots
-        </button>
-        <button 
-          className={`px-4 py-2 font-medium ${activeTab === 'comparison' ? 'text-[#F4EEFF] border-b-2 border-[#F4EEFF]' : 'text-[#DCD6F7] hover:text-[#F4EEFF]'}`}
-          onClick={() => setActiveTab('comparison')}
-        >
-          Profile Comparison
-        </button>
-      </div>
-      
-      <div className="bg-[#A6B1E1] p-6 rounded-lg min-h-[500px]">
-        {activeTab === 'map' && (
-          <div className="map-container">
-            <h2 className="text-xl font-semibold text-[#424874] mb-4">ARGO Float Trajectories</h2>
-            <MapContainer
-              center={[40, -160]}
-              zoom={3}
-              className="h-96 w-full rounded-lg"
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              {mapData.map(float => (
-                float.latestPosition && (
-                  <React.Fragment key={float.id}>
-                    <Marker position={[float.latestPosition.lat, float.latestPosition.lon]}>
-                      <Popup>
-                        <div className="text-[#424874]">
-                          <h3 className="font-bold">{float.name}</h3>
-                          <p>Last position: {float.latestPosition.date.toLocaleDateString()}</p>
-                          <p>Lat: {float.latestPosition.lat.toFixed(2)}°N</p>
-                          <p>Lon: {float.latestPosition.lon.toFixed(2)}°E</p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                    <Polyline
-                      positions={float.path.map(([lat, lon]) => [lat, lon])}
-                      color={float.id === selectedFloats[0] ? '#424874' : '#F4EEFF'}
-                    />
-                  </React.Fragment>
-                )
-              ))}
-            </MapContainer>
-          </div>
-        )}
-        
-        {activeTab === 'depthTime' && (
-          <div className="depth-time-plots">
-            <h2 className="text-xl font-semibold text-[#424874] mb-4">Depth-Time Plots</h2>
-            <div className="parameter-selector flex space-x-4 mb-6">
-              <button 
-                className={`px-4 py-2 rounded ${selectedParameter === 'temperature' ? 'bg-[#424874] text-[#F4EEFF]' : 'bg-[#DCD6F7] text-[#424874]'}`}
-                onClick={() => setSelectedParameter('temperature')}
-              >
-                Temperature
-              </button>
-              <button 
-                className={`px-4 py-2 rounded ${selectedParameter === 'salinity' ? 'bg-[#424874] text-[#F4EEFF]' : 'bg-[#DCD6F7] text-[#424874]'}`}
-                onClick={() => setSelectedParameter('salinity')}
-              >
-                Salinity
-              </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {selectedFloats.map(floatId => {
-                const data = prepareDepthTimeData(floatId, selectedParameter);
-                const float = argoData.find(f => f.id === floatId);
-                
-                return (
-                  <div key={floatId} className="bg-[#424874] p-4 rounded-lg">
-                    <h3 className="text-lg font-medium text-[#F4EEFF] mb-4">{float.name} - {selectedParameter.charAt(0).toUpperCase() + selectedParameter.slice(1)}</h3>
-                    <div className="h-80">
-                      <Scatter
-                        data={{
-                          datasets: [{
-                            label: `${selectedParameter} (°${selectedParameter === 'temperature' ? 'C' : 'PSU'})`,
-                            data: data,
-                            backgroundColor: 'rgba(166, 177, 225, 0.6)',
-                            borderColor: 'rgba(244, 238, 255, 1)',
-                            pointRadius: 3,
-                          }]
-                        }}
-                        options={depthTimeOptions}
-                      />
+            <div className="flex gap-3">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              >
+                <option value="all">All Datasets</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive</option>
+                <option value="public">Public Access</option>
+                <option value="restricted">Restricted</option>
+              </select>
+              <div className="flex bg-gray-800/50 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                >
+                  <Grid className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                >
+                  <List className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Dataset Grid/List */}
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'}>
+            {filteredDatasets.map((dataset) => (
+              <div
+                key={dataset.id}
+                className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-xl border border-gray-600/30 rounded-xl p-6 hover:scale-[1.02] hover:border-cyan-500/20 transition-all duration-300 shadow-lg hover:shadow-cyan-500/20"
+              >
+                {/* Dataset Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-white mb-2">{dataset.name}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      {getStatusIcon(dataset.status)}
+                      <span className="text-sm text-gray-300">{dataset.status}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAccessLevelColor(dataset.accessLevel)}`}>
+                        {dataset.accessLevel}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'comparison' && (
-          <div className="profile-comparison">
-            <h2 className="text-xl font-semibold text-[#424874] mb-4">Profile Comparison</h2>
-            <div className="comparison-controls grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="profile-selector bg-[#424874] p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-[#F4EEFF] mb-2">Select Profile 1:</h3>
-                <select
-                  onChange={e => handleProfileSelection(JSON.parse(e.target.value), 'profile1')}
-                  className="w-full px-3 py-2 bg-[#DCD6F7] border border-[#424874] rounded-md text-[#424874]"
-                >
-                  <option value="">Select a profile</option>
-                  {filteredData.flatMap(float => 
-                    float.profiles.map(profile => (
-                      <option key={`${float.id}-${profile.date}`} value={JSON.stringify(profile)}>
-                        {float.name} - {profile.date.toLocaleDateString()}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-              
-              <div className="profile-selector bg-[#424874] p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-[#F4EEFF] mb-2">Select Profile 2:</h3>
-                <select
-                  onChange={e => handleProfileSelection(JSON.parse(e.target.value), 'profile2')}
-                  className="w-full px-3 py-2 bg-[#DCD6F7] border border-[#424874] rounded-md text-[#424874]"
-                >
-                  <option value="">Select a profile</option>
-                  {filteredData.flatMap(float => 
-                    float.profiles.map(profile => (
-                      <option key={`${float.id}-${profile.date}`} value={JSON.stringify(profile)}>
-                        {float.name} - {profile.date.toLocaleDateString()}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-[#424874] p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-[#F4EEFF] mb-4">Temperature Profile Comparison</h3>
-                <div className="h-80">
-                  {comparisonProfiles.profile1 && comparisonProfiles.profile2 ? (
-                    <Line
-                      data={{
-                        labels: comparisonProfiles.profile1.depth,
-                        datasets: [
-                          {
-                            label: `Profile 1 - ${new Date(comparisonProfiles.profile1.date).toLocaleDateString()}`,
-                            data: comparisonProfiles.profile1.temperature,
-                            borderColor: '#A6B1E1',
-                            backgroundColor: 'rgba(166, 177, 225, 0.2)',
-                            tension: 0.1
-                          },
-                          {
-                            label: `Profile 2 - ${new Date(comparisonProfiles.profile2.date).toLocaleDateString()}`,
-                            data: comparisonProfiles.profile2.temperature,
-                            borderColor: '#F4EEFF',
-                            backgroundColor: 'rgba(244, 238, 255, 0.2)',
-                            tension: 0.1
-                          }
-                        ]
-                      }}
-                      options={profileOptions}
-                    />
-                  ) : (
-                    <div className="flex justify-center items-center h-full text-[#F4EEFF]">
-                      Select two profiles to compare
+                  <button
+                    onClick={() => setSelectedDataset(dataset)}
+                    className="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Dataset Details */}
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Database className="w-4 h-4 text-cyan-400" />
+                    <span className="text-gray-300">Source:</span>
+                    <span className="text-white">{dataset.dataSource}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Target className="w-4 h-4 text-green-400" />
+                    <span className="text-gray-300">Type:</span>
+                    <span className="text-white">{dataset.type}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-blue-400" />
+                    <span className="text-gray-300">Coverage:</span>
+                    <span className="text-white">{dataset.coverage}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-yellow-400" />
+                    <span className="text-gray-300">Updated:</span>
+                    <span className="text-white">{dataset.updateFrequency}</span>
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-white">{dataset.recordCount}</div>
+                    <div className="text-xs text-gray-400">Records</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-white">{dataset.size}</div>
+                    <div className="text-xs text-gray-400">Size</div>
+                  </div>
+                </div>
+
+                {/* Float/Sensor Info */}
+                <div className="border-t border-gray-700 pt-4 mb-4">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-400">Float ID:</span>
+                      <div className="text-white font-mono">{dataset.floatId}</div>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-gray-400">Battery:</span>
+                      <div className={`font-semibold ${getHealthColor(dataset.health)}`}>
+                        {dataset.batteryLife}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Health:</span>
+                      <div className={`font-semibold ${getHealthColor(dataset.health)}`}>
+                        {dataset.health}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Last TX:</span>
+                      <div className="text-white text-xs">{dataset.lastTransmission}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Preview
+                  </button>
+                  <button className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Dashboard
+                  </button>
+                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                    <Download className="w-4 h-4" />
+                    Export
+                  </button>
                 </div>
               </div>
-              
-              <div className="bg-[#424874] p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-[#F4EEFF] mb-4">Salinity Profile Comparison</h3>
-                <div className="h-80">
-                  {comparisonProfiles.profile1 && comparisonProfiles.profile2 ? (
-                    <Line
-                      data={{
-                        labels: comparisonProfiles.profile1.depth,
-                        datasets: [
-                          {
-                            label: `Profile 1 - ${new Date(comparisonProfiles.profile1.date).toLocaleDateString()}`,
-                            data: comparisonProfiles.profile1.salinity,
-                            borderColor: '#A6B1E1',
-                            backgroundColor: 'rgba(166, 177, 225, 0.2)',
-                            tension: 0.1
-                          },
-                          {
-                            label: `Profile 2 - ${new Date(comparisonProfiles.profile2.date).toLocaleDateString()}`,
-                            data: comparisonProfiles.profile2.salinity,
-                            borderColor: '#F4EEFF',
-                            backgroundColor: 'rgba(244, 238, 255, 0.2)',
-                            tension: 0.1
-                          }
-                        ]
-                      }}
-                      options={profileOptions}
-                    />
-                  ) : (
-                    <div className="flex justify-center items-center h-full text-[#F4EEFF]">
-                      Select two profiles to compare
+            ))}
+          </div>
+
+          {/* Dataset Detail Modal */}
+          {selectedDataset && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white mb-2">{selectedDataset.name}</h2>
+                      <p className="text-gray-300">{selectedDataset.description}</p>
                     </div>
-                  )}
+                    <button
+                      onClick={() => setSelectedDataset(null)}
+                      className="text-gray-400 hover:text-gray-200"
+                    >
+                      <ExternalLink className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Dataset Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Dataset Information</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Data Source:</span>
+                          <span className="text-white">{selectedDataset.dataSource}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Format:</span>
+                          <span className="text-white">{selectedDataset.format}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Size:</span>
+                          <span className="text-white">{selectedDataset.size}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Update Frequency:</span>
+                          <span className="text-white">{selectedDataset.updateFrequency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Coverage:</span>
+                          <span className="text-white">{selectedDataset.coverage}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Float/Sensor Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Sensor Information</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Float ID:</span>
+                          <span className="text-white font-mono">{selectedDataset.floatId}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Deployment Date:</span>
+                          <span className="text-white">{selectedDataset.deploymentDate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Location:</span>
+                          <span className="text-white">{selectedDataset.deploymentLocation}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Status:</span>
+                          <span className="text-white">{selectedDataset.status}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Battery Life:</span>
+                          <span className={`font-semibold ${getHealthColor(selectedDataset.health)}`}>
+                            {selectedDataset.batteryLife}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visualizations and Access */}
+                  <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-3">Available Visualizations</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedDataset.visualizations.map((viz, index) => (
+                          <span key={index} className="bg-cyan-600/20 text-cyan-300 px-3 py-1 rounded-full text-sm">
+                            {viz}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-3">Download Options</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedDataset.downloadOptions.map((format, index) => (
+                          <span key={index} className="bg-green-600/20 text-green-300 px-3 py-1 rounded-full text-sm">
+                            {format}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 flex gap-3">
+                    <button className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Preview Data
+                    </button>
+                    <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" />
+                      Add to Dashboard
+                    </button>
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                      <Download className="w-5 h-5" />
+                      Export Dataset
+                    </button>
+                    <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                      <Share2 className="w-5 h-5" />
+                      Compare
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default InterDash;
+export default InventoryDash;

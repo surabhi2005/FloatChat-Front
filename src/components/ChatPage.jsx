@@ -1,76 +1,263 @@
 import React, { useState, useRef, useEffect } from "react";
+import { 
+  Send, 
+  Paperclip, 
+  Mic, 
+  MicOff, 
+  Image, 
+  FileText, 
+  Download, 
+  Trash2, 
+  Bot,
+  User,
+  Loader2,
+  Compass,
+  Waves,
+  Palette
+} from "lucide-react";
 import Canvas from "./Canvas";
+import BeamsBackground from "./BeamsBackground";
 
 export default function ChatPage() {
   const [chatSessions, setChatSessions] = useState([
-    { id: 1, title: "ARGO Data Exploration", active: true },
-    { id: 2, title: "Pacific Temperature Analysis", active: false },
-    { id: 3, title: "Salinity Comparison", active: false }
+    { id: `sess-${Date.now() - 20000}`, title: "ARGO Data Exploration", active: true, createdAt: new Date(Date.now() - 20000), updatedAt: new Date(Date.now() - 20000) },
+    { id: `sess-${Date.now() - 15000}`, title: "Pacific Temperature Analysis", active: false, createdAt: new Date(Date.now() - 15000), updatedAt: new Date(Date.now() - 15000) },
+    { id: `sess-${Date.now() - 10000}`, title: "Salinity Comparison", active: false, createdAt: new Date(Date.now() - 10000), updatedAt: new Date(Date.now() - 10000) },
   ]);
+  
   const [messages, setMessages] = useState([
-    { 
-      sender: "bot", 
-      text: "Hello! I'm your ARGO data assistant. How can I help you today?", 
+    {
+      id: 1,
+      sender: "bot",
+      text: "Hello! I'm your ARGO data assistant. How can I help you today?",
       timestamp: new Date(Date.now() - 300000),
-      hasVisualization: false
-    }
+      hasVisualization: false,
+      attachments: [],
+    },
   ]);
-  const [activeVisualization, setActiveVisualization] = useState(null);
+  
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [whisperApiKey, setWhisperApiKey] = useState("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
+  // Visual theme: "black" | "dark" | "white"
+  const [theme, setTheme] = useState("black");
+
+  const themeTokens = {
+    black: {
+      panel: "bg-black/40 border-gray-600/20",
+      cardUser: "bg-gray-900 border border-gray-700",
+      cardBot: "bg-gray-800/50 border border-gray-700/50",
+      textMain: "text-white",
+      textSoft: "text-gray-300",
+      chip: "bg-gray-900/60 border border-gray-700",
+      button: "bg-gray-900 border border-gray-700 text-gray-100 hover:border-cyan-400/60 hover:shadow-[0_0_0_1px_rgba(34,211,238,.35)]",
+      input: "border border-gray-700 bg-black/60",
+      accentGrad: "from-blue-500 via-cyan-500 to-purple-500",
+      userText: "text-cyan-200"
+    },
+    dark: {
+      panel: "bg-slate-900/50 border-slate-700/30",
+      cardUser: "bg-slate-900 border border-slate-700",
+      cardBot: "bg-slate-800/60 border border-slate-700/50",
+      textMain: "text-slate-100",
+      textSoft: "text-slate-300",
+      chip: "bg-slate-900/60 border border-slate-700",
+      button: "bg-slate-900 border border-slate-700 text-slate-100 hover:border-sky-400/60 hover:shadow-[0_0_0_1px_rgba(56,189,248,.35)]",
+      input: "border border-slate-700 bg-slate-950/60",
+      accentGrad: "from-sky-500 via-cyan-400 to-violet-500",
+      userText: "text-sky-200"
+    },
+    white: {
+      panel: "bg-white/70 backdrop-blur-xl border-gray-200",
+      cardUser: "bg-white border border-gray-200",
+      cardBot: "bg-gray-50 border border-gray-200",
+      textMain: "text-gray-900",
+      textSoft: "text-gray-700",
+      chip: "bg-white border border-gray-200",
+      button: "bg-white border border-gray-200 text-gray-900 hover:border-sky-400 hover:shadow-[0_0_0_2px_rgba(56,189,248,.25)]",
+      input: "border border-gray-300 bg-white/80",
+      accentGrad: "from-gray-900 via-gray-700 to-gray-900",
+      userText: "text-gray-900"
+    }
+  };
+
+  const t = themeTokens[theme];
+
+  // Compact header when conversation starts or user is typing
+  const isCompactHeader = messages.length > 1 || input.length > 0 || isLoading;
+
+  const cycleTheme = () => {
+    const order = ["black", "dark", "white"];
+    const idx = order.indexOf(theme);
+    const next = order[(idx + 1) % order.length];
+    setTheme(next);
+  };
+
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  // Auto-scroll to bottom of messages
+  // Scroll to bottom on new message
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+  useEffect(scrollToBottom, [messages]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // Format timestamp
+  const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return `${d.toLocaleDateString()} • ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+  const getActiveSessionId = () => chatSessions.find((s) => s.active)?.id;
 
+  // Handle file upload
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const newAttachments = files.map(file => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      file: file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+  };
+
+  // Remove attachment
+  const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        await transcribeAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Microphone access denied. Please allow microphone access to use voice input.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Transcribe audio using Whisper API
+  const transcribeAudio = async (audioBlob) => {
+    if (!whisperApiKey) {
+      setShowApiKeyInput(true);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.wav');
+      formData.append('model', 'whisper-1');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${whisperApiKey}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setInput(result.text);
+      } else {
+        throw new Error('Transcription failed');
+      }
+    } catch (error) {
+      console.error('Transcription error:', error);
+      alert('Voice transcription failed. Please check your API key and try again.');
+    }
+  };
+
+  // Handle sending message
   const handleSend = () => {
-    if (!input.trim()) return;
-    
+    if (!input.trim() && attachments.length === 0) return;
+
     const userMessage = { 
+      id: Date.now(),
       sender: "user", 
       text: input, 
-      timestamp: new Date(),
-      hasVisualization: false
+      timestamp: new Date(), 
+      hasVisualization: false,
+      attachments: [...attachments]
     };
-    
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
-    
-    // Simulate API call delay
+
+    // Update active session meta (title/updatedAt)
+    const activeId = getActiveSessionId();
+    setChatSessions((prev) => prev.map((s) => {
+      if (s.id !== activeId) return s;
+      const newTitle = s.title === "New Conversation" || !s.title ? input.slice(0, 40) : s.title;
+      return { ...s, title: newTitle, updatedAt: new Date() };
+    }));
+
+    // Clear input and attachments
+    setInput("");
+    setAttachments([]);
+
     setTimeout(() => {
       let botResponse;
       let visualizationData = null;
-      
-      // Example responses based on user input
-      if (input.toLowerCase().includes("plot") || input.toLowerCase().includes("graph")) {
-        visualizationData = { 
+
+      const text = input.toLowerCase();
+
+      if (text.includes("plot") || text.includes("graph") || text.includes("chart")) {
+        visualizationData = {
           type: "chart",
           data: {
-            x: [0, 1, 2, 3, 4, 5], 
+            chartType: "line",
+            x: [0, 1, 2, 3, 4, 5],
             y: [5, 15, 10, 25, 15, 30],
             title: "Temperature Variation",
             xLabel: "Time (days)",
-            yLabel: "Temperature (°C)"
-          }
+            yLabel: "Temperature (°C)",
+          },
         };
-        
-        botResponse = { 
-          sender: "bot", 
-          text: "I've generated the plot you requested. Click the visualization button to view it.", 
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "Here's the chart for the data you requested.",
           timestamp: new Date(),
           hasVisualization: true,
-          visualization: visualizationData
+          visualization: visualizationData,
+          attachments: [],
         };
-      } 
-      else if (input.toLowerCase().includes("table") || input.toLowerCase().includes("data table")) {
+      } else if (text.includes("table") || text.includes("data table")) {
         visualizationData = {
           type: "table",
           data: {
@@ -80,21 +267,21 @@ export default function ChatPage() {
               ["2023-01-16", 24.8, 35.4, 15],
               ["2023-01-17", 23.9, 35.1, 20],
               ["2023-01-18", 24.2, 35.3, 18],
-              ["2023-01-19", 25.1, 35.0, 12]
+              ["2023-01-19", 25.1, 35.0, 12],
             ],
-            title: "ARGO Float Data Sample"
-          }
+            title: "ARGO Float Data Sample",
+          },
         };
-        
-        botResponse = { 
-          sender: "bot", 
-          text: "Here's the data table you requested. Click the visualization button to view it.", 
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "Here's the data table you requested.",
           timestamp: new Date(),
           hasVisualization: true,
-          visualization: visualizationData
+          visualization: visualizationData,
+          attachments: [],
         };
-      }
-      else if (input.toLowerCase().includes("map") || input.toLowerCase().includes("location")) {
+      } else if (text.includes("map") || text.includes("location")) {
         visualizationData = {
           type: "map",
           data: {
@@ -102,332 +289,345 @@ export default function ChatPage() {
               { lat: 37.7749, lng: -122.4194, name: "Float #7901", temp: 15.6, salinity: 34.5 },
               { lat: 34.0522, lng: -118.2437, name: "Float #7902", temp: 18.2, salinity: 35.1 },
               { lat: 32.7157, lng: -117.1611, name: "Float #7903", temp: 19.8, salinity: 34.8 },
-              { lat: 36.7783, lng: -119.4179, name: "Float #7904", temp: 17.4, salinity: 35.3 }
+              { lat: 36.7783, lng: -119.4179, name: "Float #7904", temp: 17.4, salinity: 35.3 },
             ],
             center: { lat: 36.5, lng: -119.5 },
             zoom: 6,
-            title: "ARGO Float Locations in Pacific Ocean"
-          }
+            title: "ARGO Float Locations in Pacific Ocean",
+          },
         };
-        
-        botResponse = { 
-          sender: "bot", 
-          text: "I've created a map showing ARGO float locations. Click the visualization button to view it.", 
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "Here's a map showing ARGO float locations.",
           timestamp: new Date(),
           hasVisualization: true,
-          visualization: visualizationData
+          visualization: visualizationData,
+          attachments: [],
         };
-      }
-      else if (input.toLowerCase().includes("data") || input.toLowerCase().includes("argo")) {
-        botResponse = { 
-          sender: "bot", 
-          text: "The ARGO float system consists of over 3,900 robotic floats that measure temperature, salinity, and other ocean properties. Would you like to see specific data from a particular region or time period?", 
+      } else if (text.includes("data") || text.includes("argo")) {
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "The ARGO float system has over 3,900 robotic floats measuring temperature, salinity, and other ocean properties. Ask me for a chart, table, or map!",
           timestamp: new Date(),
-          hasVisualization: false
+          hasVisualization: false,
+          attachments: [],
         };
-      }
-      else if (input.toLowerCase().includes("hello") || input.toLowerCase().includes("hi")) {
-        botResponse = { 
-          sender: "bot", 
-          text: "Hello! I'm here to help you explore and understand ARGO float data. What would you like to know?", 
+      } else if (text.includes("hello") || text.includes("hi")) {
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "Hello! I'm your ARGO data assistant. How can I help you today?",
           timestamp: new Date(),
-          hasVisualization: false
+          hasVisualization: false,
+          attachments: [],
         };
-      }
-      else {
-        botResponse = { 
-          sender: "bot", 
-          text: "I'm processing your request. Is there specific ARGO data you're interested in exploring further?", 
+      } else {
+        botResponse = {
+          id: Date.now() + 1,
+          sender: "bot",
+          text: "I'm processing your request. Try asking for a chart, table, or map.",
           timestamp: new Date(),
-          hasVisualization: false
+          hasVisualization: false,
+          attachments: [],
         };
       }
-      
+
       setMessages((prev) => [...prev, botResponse]);
       setIsLoading(false);
+
+      // Update session updatedAt after bot response
+      const activeIdAfter = getActiveSessionId();
+      setChatSessions((prev) => prev.map((s) => s.id === activeIdAfter ? { ...s, updatedAt: new Date() } : s));
     }, 1000);
-    
-    setInput("");
   };
 
   const handleNewChat = () => {
-    // Create a new chat session
-    const newSession = {
-      id: Date.now(),
-      title: "New Conversation",
-      active: true
+    const newSession = { 
+      id: `sess-${Date.now()}`, 
+      title: "New Conversation", 
+      active: true, 
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-    
-    // Update all sessions to inactive
-    const updatedSessions = chatSessions.map(session => ({
-      ...session,
-      active: false
-    }));
-    
+    const updatedSessions = chatSessions.map((s) => ({ ...s, active: false }));
     setChatSessions([...updatedSessions, newSession]);
     setMessages([
-      { 
-        sender: "bot", 
-        text: "Hello! I'm your ARGO data assistant. How can I help you today?", 
+      {
+        id: Date.now(),
+        sender: "bot",
+        text: "Hello! I'm your ARGO data assistant. How can I help you today?",
         timestamp: new Date(),
-        hasVisualization: false
-      }
+        hasVisualization: false,
+        attachments: [],
+      },
     ]);
-    setActiveVisualization(null);
   };
 
   const switchChatSession = (id) => {
-    // Set all sessions to inactive except the selected one
-    const updatedSessions = chatSessions.map(session => ({
-      ...session,
-      active: session.id === id
-    }));
-    
+    const updatedSessions = chatSessions.map((s) => ({ ...s, active: s.id === id }));
     setChatSessions(updatedSessions);
-    
-    // In a real app, you would load the messages for this session
-    // For this example, we'll just reset to a default state
     setMessages([
-      { 
-        sender: "bot", 
-        text: `Welcome back to "${chatSessions.find(s => s.id === id)?.title}". How can I help you?`, 
+      {
+        id: Date.now(),
+        sender: "bot",
+        text: `Welcome back to "${chatSessions.find((s) => s.id === id)?.title}". How can I help you?`,
         timestamp: new Date(),
-        hasVisualization: false
-      }
+        hasVisualization: false,
+        attachments: [],
+      },
     ]);
-    setActiveVisualization(null);
   };
 
-  const showVisualization = (visualizationData) => {
-    setActiveVisualization(visualizationData);
-  };
-
-  const closeVisualization = () => {
-    setActiveVisualization(null);
-  };
-
-  const suggestedQuestions = [
-    "Show me temperature data from the Pacific",
-    "Plot salinity variations over time",
-    "Create a table with recent ARGO data",
-    "Show ARGO float locations on a map"
-  ];
-
-  const handleSuggestionClick = (question) => {
-    setInput(question);
-    inputRef.current.focus();
-  };
-
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const deleteChatSession = (id) => {
+    setChatSessions(prev => prev.filter(s => s.id !== id));
+    if (chatSessions.find(s => s.id === id)?.active) {
+      handleNewChat();
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-[#424874] to-[#A6B1E1]">
-      <header className="bg-[#424874] text-[#F4EEFF] p-4 flex justify-between items-center shadow-lg border-b border-[#DCD6F7]">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => setShowHistory(!showHistory)}
-            className="p-2 rounded-lg bg-[#A6B1E1] hover:bg-[#DCD6F7] transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h1 className="text-2xl font-bold">💬 ARGO Data Assistant</h1>
+    <div className="w-full h-full flex flex-col relative">
+      {/* Animated Beams Background */}
+      <div className="pointer-events-none fixed inset-0 -z-10 opacity-80">
+        <BeamsBackground beamWidth={3} beamHeight={22} beamNumber={18} lightColor={theme === "white" ? "#66ccff" : "#ffffff"} speed={1.6} noiseIntensity={0.22} scale={0.05} rotation={2} />
+      </div>
+      {/* Enhanced Header (shrinks when chatting) */}
+      <div className={`flex-shrink-0 text-center sticky top-0 z-10 backdrop-blur-sm ${isCompactHeader ? 'pt-2 pb-2' : 'p-2 md:p-4'}`}>
+        <div className={`flex items-center justify-center gap-2 md:gap-3 ${isCompactHeader ? 'mb-1' : 'mb-3 md:mb-4'}`}>
+          <Waves size={isCompactHeader ? 18 : 24} className="text-cyan-400 md:hidden" />
+          <Waves size={isCompactHeader ? 26 : 32} className="text-cyan-400 hidden md:block" />
+          <h1 className={`${isCompactHeader ? 'text-lg md:text-2xl' : 'text-xl md:text-3xl lg:text-4xl xl:text-5xl'} font-black text-white bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent leading-tight`}>
+            Living Voice of the Ocean
+          </h1>
+          <Compass size={isCompactHeader ? 18 : 24} className="text-blue-400 md:hidden" />
+          <Compass size={isCompactHeader ? 26 : 32} className="text-blue-400 hidden md:block" />
         </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* History Sidebar */}
-        {showHistory && (
-          <div className="w-64 bg-[#424874] text-[#F4EEFF] flex flex-col border-r border-[#DCD6F7]">
-            <div className="p-4">
-              <button 
-                onClick={handleNewChat}
-                className="w-full bg-[#A6B1E1] hover:bg-[#DCD6F7] text-[#F4EEFF] hover:text-[#424874] py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span>New Chat</span>
-              </button>
+        {!isCompactHeader ? (
+          <>
+            <div className={`w-24 md:w-32 h-1 bg-gradient-to-r ${t.accentGrad} mx-auto mb-3 md:mb-4 rounded-full`}></div>
+            <p className={`text-sm md:text-base lg:text-lg ${t.textSoft} leading-relaxed max-w-2xl mx-auto px-4`}>
+              AI-Powered Ocean Data Communication Platform
+            </p>
+            <div className="mt-3 flex justify-center gap-2">
+              {['black','dark','white'].map((mode) => (
+                <button key={mode} onClick={() => setTheme(mode)} className={`${t.button} px-3 py-1 rounded-full text-xs capitalize ${theme===mode ? 'ring-2 ring-cyan-400/60' : 'opacity-80'}`}>{mode}</button>
+              ))}
             </div>
-            
-            <div className="flex-1 overflow-auto p-2">
-              <h3 className="px-2 py-1 text-sm font-medium text-[#DCD6F7]">Recent Conversations</h3>
-              <div className="space-y-1">
-                {chatSessions.map(session => (
-                  <button
-                    key={session.id}
-                    onClick={() => switchChatSession(session.id)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      session.active 
-                        ? "bg-[#A6B1E1] text-[#F4EEFF]" 
-                        : "hover:bg-[#A6B1E1] hover:text-[#F4EEFF] text-[#DCD6F7]"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                      <span className="truncate">{session.title}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-[#DCD6F7]">
-              <button className="w-full flex items-center space-x-2 text-[#DCD6F7] hover:text-[#F4EEFF] p-2 rounded-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Log out</span>
-              </button>
-            </div>
+          </>
+        ) : (
+          <div className="mt-1 flex justify-center">
+            <button onClick={cycleTheme} className={`${t.button} rounded-full px-3 py-1`} title="Switch theme">
+              <Palette size={16} />
+            </button>
           </div>
         )}
+      </div>
 
-        {/* Chat Column */}
-        <div className="flex flex-col w-full transition-all duration-300">
-          <div className="flex-1 overflow-hidden flex flex-col p-4">
-            {/* Suggested Questions */}
-            <div className="mb-4">
-              <h3 className="text-[#DCD6F7] text-sm font-medium mb-2">Try asking:</h3>
-              <div className="flex flex-wrap gap-2">
-                {suggestedQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSuggestionClick(question)}
-                    className="bg-[#A6B1E1] text-[#F4EEFF] text-xs px-3 py-1 rounded-full hover:bg-[#DCD6F7] hover:text-[#424874] transition-colors"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Chat Interface Container */}
+      <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 pb-2 md:pb-4">
+        <div className="max-w-6xl xl:max-w-7xl mx-auto w-full h-full grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+          {/* Chat Column */}
+          <div className="flex flex-col h-full">
 
-            {/* Messages Container */}
-            <div className="flex-1 overflow-auto rounded-lg bg-[#A6B1E1] p-4 shadow-inner">
-              <div className="space-y-4">
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-xs md:max-w-md lg:max-w-lg rounded-xl p-4 flex flex-col ${
-                        m.sender === "user" 
-                          ? "bg-[#DCD6F7] text-[#424874] rounded-br-none" 
-                          : "bg-[#424874] text-[#F4EEFF] rounded-bl-none"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 mb-1">
-                        {m.sender === "bot" && (
-                          <div className="w-6 h-6 rounded-full bg-[#A6B1E1] flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#F4EEFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
+          {/* Messages Container - Flexible Height */}
+          <div className="flex-1 min-h-0 mb-4">
+            <div className={`h-full overflow-auto rounded-2xl ${t.panel} backdrop-blur-xl p-6 shadow-2xl space-y-4`}>
+              {messages.map((m) => (
+                <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] sm:max-w-[80%] md:max-w-md lg:max-w-lg xl:max-w-2xl 2xl:max-w-3xl rounded-xl p-4 flex flex-col ${
+                    m.sender === "user" 
+                      ? `${t.cardUser} ${t.textMain} rounded-br-none shadow-[0_0_0_1px_rgba(34,211,238,.15)]` 
+                      : `${t.cardBot} ${t.textMain} rounded-bl-none`
+                  }`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1 rounded-full bg-white/10">
+                        {m.sender === "user" ? <User size={14} /> : <Bot size={14} />}
+                      </div>
+                      <span className={`text-xs opacity-70 font-medium ${t.textSoft}`}>
+                        {m.sender === "user" ? "You" : "Ocean Assistant"} • {formatTime(m.timestamp)}
+                      </span>
+                    </div>
+                    <p className={`text-sm mb-2 leading-relaxed ${m.sender === "user" ? t.userText : t.textMain}`}>{m.text}</p>
+
+                    {/* Attachments */}
+                    {m.attachments && m.attachments.length > 0 && (
+                      <div className="space-y-2 mb-2">
+                        {m.attachments.map((att) => (
+                          <div key={att.id} className={`flex items-center gap-2 p-2 ${t.chip} rounded-lg`}>
+                            {att.type.startsWith('image/') ? (
+                              <Image size={16} className="text-blue-400" />
+                            ) : (
+                              <FileText size={16} className="text-blue-400" />
+                            )}
+                            <span className="text-xs truncate">{att.name}</span>
+                            <button className={`ml-auto ${t.button} rounded px-2 py-1`}>
+                              <Download size={14} />
+                            </button>
                           </div>
-                        )}
-                        <span className="text-xs opacity-70">
-                          {m.sender === "user" ? "You" : "ARGO Assistant"} • {formatTime(m.timestamp)}
-                        </span>
+                        ))}
                       </div>
-                      <p className="text-sm mb-2">{m.text}</p>
-                      
-                      {m.hasVisualization && (
-                        <button 
-                          onClick={() => showVisualization(m.visualization)}
-                          className="self-start flex items-center space-x-1 text-xs bg-[#A6B1E1] text-[#F4EEFF] px-2 py-1 rounded mt-1 hover:bg-opacity-80 transition"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                          <span>View Visualization</span>
-                        </button>
-                      )}
-                    </div>
+                    )}
+
+                    {m.hasVisualization && <Canvas visualization={m.visualization} />}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className={`flex items-center gap-2 ${t.textMain} text-sm`}>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Ocean Assistant is thinking...</span>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Attachments Preview */}
+          {attachments.length > 0 && (
+            <div className={`flex-shrink-0 mb-4 p-3 ${t.panel} rounded-lg`}>
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((att) => (
+                  <div key={att.id} className={`flex items-center gap-2 p-2 ${t.chip} rounded`}>
+                    {att.type.startsWith('image/') ? (
+                      <Image size={16} className="text-blue-400" />
+                    ) : (
+                      <FileText size={16} className="text-blue-400" />
+                    )}
+                    <span className={`text-xs ${t.textMain}`}>{att.name}</span>
+                    <button 
+                      onClick={() => removeAttachment(att.id)}
+                      className={`${t.button} rounded px-2 py-1`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
-                
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-[#424874] text-[#F4EEFF] rounded-xl rounded-bl-none p-4 max-w-xs">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 rounded-full bg-[#A6B1E1] flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#F4EEFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <span className="text-xs opacity-70">ARGO Assistant • Typing...</span>
-                      </div>
-                      <div className="flex space-x-1 mt-2">
-                        <div className="w-2 h-2 bg-[#DCD6F7] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-[#DCD6F7] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-[#DCD6F7] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div ref={messagesEndRef} />
               </div>
             </div>
+          )}
 
-            {/* Input Area */}
-            <div className="mt-4 flex gap-2">
-              <input
+          {/* Fixed Input Area */}
+          <div className="flex-shrink-0 flex gap-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={`${t.button} rounded-lg px-4 py-2`}
+              title="Attach file"
+            >
+              <Paperclip size={20} />
+            </button>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+              accept="image/*,.pdf,.txt,.csv,.json"
+            />
+
+            <div className="flex-1 relative">
+              <textarea
                 ref={inputRef}
-                type="text"
-                className="flex-1 border-2 border-[#DCD6F7] bg-[#A6B1E1] text-[#F4EEFF] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#DCD6F7] placeholder-[#DCD6F7]"
+                rows={1}
+                className={`w-full ${t.input} ${t.userText} rounded-2xl pl-5 pr-14 py-3 focus:outline-none placeholder-white/40 shadow-sm resize-none leading-6`}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onChange={(e) => {
+                  const el = e.target;
+                  el.style.height = 'auto';
+                  el.style.height = `${el.scrollHeight}px`;
+                  setInput(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Ask about ARGO data..."
                 disabled={isLoading}
               />
-              <button 
-                onClick={handleSend} 
-                disabled={isLoading}
-                className="bg-[#424874] text-[#F4EEFF] px-4 rounded-lg hover:bg-[#DCD6F7] hover:text-[#424874] transition-colors disabled:opacity-50 flex items-center justify-center"
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                    className={`absolute right-4 top-1/2 transform -translate-y-1/2 p-1 rounded ${
+                      isRecording 
+                        ? "text-red-400 hover:text-red-300" 
+                        : "text-gray-400 hover:text-gray-200"
+                    }`}
+                title={isRecording ? "Stop recording" : "Start voice input"}
               >
-                {isLoading ? (
-                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                )}
+                {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
               </button>
             </div>
+
+            <button
+              onClick={handleSend}
+              disabled={isLoading || (!input.trim() && attachments.length === 0)}
+              className={`${t.button} rounded-full px-6 py-2 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <Send size={20} />
+            </button>
           </div>
+          </div>
+
+          {/* History Sidebar (styled like left sidebar) */}
+          <aside className={`hidden lg:flex flex-col bg-gray-800 text-gray-100 rounded-2xl p-4 h-full min-h-0 shadow-lg`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Chat History</h3>
+              <button onClick={handleNewChat} className="rounded-lg px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 transition-colors">New</button>
+            </div>
+            <div className="flex-1 overflow-auto space-y-2">
+              {chatSessions
+                .slice()
+                .sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt))
+                .map((s) => (
+                <div key={s.id} className={`p-3 rounded-lg cursor-pointer ${s.active ? 'bg-gray-700' : 'hover:bg-gray-700'} transition-colors`} onClick={() => switchChatSession(s.id)}>
+                  <div className="text-xs text-gray-300">{formatDate(s.updatedAt ?? s.createdAt)}</div>
+                  <div className="text-sm truncate text-gray-100">{s.title}</div>
+                  <div className="text-[10px] mt-1 text-gray-400">{s.id}</div>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={(e)=>{e.stopPropagation(); switchChatSession(s.id);}} className="rounded px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 transition-colors">Open</button>
+                    <button onClick={(e)=>{e.stopPropagation(); deleteChatSession(s.id);}} className="rounded px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 transition-colors">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </div>
 
-      {/* Visualization Popup */}
-      {activeVisualization && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#A6B1E1] rounded-xl w-full max-w-4xl h-5/6 flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-[#DCD6F7]">
-              <h2 className="text-xl font-semibold text-[#424874]">
-                {activeVisualization.data.title || "Data Visualization"}
-              </h2>
-              <button 
-                onClick={closeVisualization}
-                className="text-[#424874] hover:text-[#F4EEFF] p-1 rounded-full hover:bg-[#424874] transition"
+      {/* API Key Input Modal */}
+      {showApiKeyInput && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-black/90 backdrop-blur-xl rounded-lg p-6 max-w-md w-full mx-4 border border-gray-600/30">
+            <h3 className="text-lg font-semibold mb-4 text-white">Enter OpenAI API Key</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Enter your OpenAI API key to use voice input with Whisper transcription.
+            </p>
+            <input
+              type="password"
+              value={whisperApiKey}
+              onChange={(e) => setWhisperApiKey(e.target.value)}
+              placeholder="sk-..."
+              className="w-full p-3 border border-gray-500/20 bg-gray-600/30 text-white rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowApiKeyInput(false);
+                  setWhisperApiKey("");
+                }}
+                className="bg-gray-600 text-gray-200 rounded-lg px-4 py-2 transition ease-in-out hover:bg-gray-700 active:bg-gray-800"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                Cancel
               </button>
-            </div>
-            <div className="flex-1 p-4 overflow-auto">
-              <Canvas visualization={activeVisualization} />
+              <button
+                onClick={() => setShowApiKeyInput(false)}
+                className="bg-gray-600 text-gray-200 rounded-lg px-4 py-2 transition ease-in-out hover:bg-gray-700 active:bg-gray-800"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
