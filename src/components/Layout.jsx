@@ -57,18 +57,7 @@ export default function Layout({ children, currentPage = "dashboard" }) {
   return (
     <div className="flex h-screen w-screen bg-black text-white font-sans overflow-hidden">
       {/* 3D Beam Background */}
-      <div className="absolute inset-0 w-full h-full z-0">
-        <Beams
-          beamWidth={3}
-          beamHeight={20}
-          beamNumber={15}
-          lightColor="#ffffff"
-          speed={1.5}
-          noiseIntensity={0.2}
-          scale={0.03}
-          rotation={0}
-        />
-      </div>
+     
 
       {/* Brand Container - Responsive Position */}
       <div className={`fixed top-4 left-4 md:top-6 md:left-6 z-50 flex items-center gap-2 md:gap-3 pointer-events-none transition-all duration-300 ${

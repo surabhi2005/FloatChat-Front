@@ -12,9 +12,12 @@ import GlobeView from "./components/GlobeView";
 import MapView from "./components/MapView";
 import MapDetView from "./components/MapDetView";
 import Analytics from "./components/Analytics";
+import BackgroundBeam from "./components/BeamsBackground";
 
 export default function App() {
   return (
+    <>
+    <BackgroundBeam/>
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -28,5 +31,6 @@ export default function App() {
         <Route path="/analytics" element={<Layout currentPage="analytics"><Analytics /></Layout>}/>
       </Routes>
     </Router>
+    </>
   );
 }

@@ -10,6 +10,7 @@ export default function PolygonPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPolygon, setCurrentPolygon] = useState([]);
   const mapRef = useRef(null);
+  const [showGrid, setShowGrid] = useState(true);
   
   // Project lat/lon to pixel coords in the simple mock map
   const projectToPixel = (lat, lon, width, height) => {
@@ -69,6 +70,12 @@ export default function PolygonPage() {
     setPolygons([...polygons, { points: currentPolygon, id: Date.now() }]);
     setCurrentPolygon([]);
     setIsDrawing(false);
+  };
+
+  // Undo last point while drawing
+  const undoLastPoint = () => {
+    if (!isDrawing || currentPolygon.length === 0) return;
+    setCurrentPolygon(currentPolygon.slice(0, -1));
   };
 
   // Calculate statistics for selected polygon
@@ -149,46 +156,129 @@ export default function PolygonPage() {
             <div className="lg:col-span-2 bg-black/60 rounded-xl p-4 border border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Draw Polygon</h3>
-                <div className="flex space-x-2">
-                  <button 
+                <div className="flex flex-wrap gap-2">
+                  <button
                     onClick={() => setIsDrawing(!isDrawing)}
-                    className={`text-xs px-3 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300`}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 hover:bg-gray-800"
+                    title={isDrawing ? 'Stop Drawing' : 'Start Drawing'}
                   >
-                    {isDrawing ? 'Stop Drawing' : 'Start Drawing'}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 21l3.75-1.5L19 7.25a1.5 1.5 0 10-2.12-2.12L4.62 17.38 3 21z" stroke="#d1d5db" strokeWidth="1.5" fill="none"/>
+                    </svg>
+                    {isDrawing ? 'Stop' : 'Draw'}
                   </button>
-                  {isDrawing && currentPolygon.length > 0 && (
-                    <button 
-                      onClick={finishDrawing}
-                      className="text-xs bg-gray-900 border border-gray-700 text-gray-300 px-3 py-1 rounded"
-                    >
-                      Finish Polygon
-                    </button>
-                  )}
+                  <button
+                    onClick={undoLastPoint}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-40"
+                    disabled={!isDrawing || currentPolygon.length === 0}
+                    title="Undo last point"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 7l-4 4 4 4" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M20 17a7 7 0 00-7-7H3" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    Undo
+                  </button>
+                  <button 
+                    onClick={finishDrawing}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-40"
+                    disabled={!isDrawing || currentPolygon.length < 3}
+                    title="Finish polygon"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17l-5-5" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Finish
+                  </button>
                   <button 
                     onClick={() => setPolygons([])}
-                    className="text-xs bg-gray-900 border border-gray-700 text-gray-300 px-3 py-1 rounded"
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 hover:bg-gray-800"
+                    title="Clear all polygons"
                   >
-                    Clear All
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 6h18" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M8 6v12a2 2 0 002 2h4a2 2 0 002-2V6" stroke="#d1d5db" strokeWidth="1.5"/>
+                      <path d="M10 6V4h4v2" stroke="#d1d5db" strokeWidth="1.5"/>
+                    </svg>
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setShowGrid(!showGrid)}
+                    className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-gray-900 border border-gray-700 text-gray-300 hover:bg-gray-800"
+                    title="Toggle grid"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="#d1d5db" strokeWidth="1.5"/>
+                    </svg>
+                    Grid
                   </button>
                 </div>
               </div>
               
               <div 
                 ref={mapRef}
-                className="h-96 rounded-lg overflow-hidden relative bg-black/70 border border-gray-700 cursor-crosshair"
+                className="relative rounded-lg overflow-hidden border border-gray-700 cursor-crosshair h-[60vh] lg:h-[70vh]"
                 onClick={handleMapClick}
               >
+                {/* Background grid + gradient for visual clarity */}
+                {showGrid && (
+                  <div
+                    aria-hidden
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `
+                        radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,0.10), rgba(0,0,0,0) 60%),
+                        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '100% 100%, 60px 60px, 60px 60px',
+                      backgroundPosition: 'center, 0 0, 0 0',
+                      backgroundColor: 'rgba(0,0,0,0.4)'
+                    }}
+                  />
+                )}
+
+                {/* Axes labels for orientation */}
+                <div className="absolute left-2 top-2 text-[10px] text-gray-300 bg-black/50 px-1.5 py-0.5 rounded border border-gray-700">Lat/Lon grid</div>
+                <div className="pointer-events-none select-none absolute inset-x-0 top-0 text-center text-[10px] text-gray-400 mt-1">0° lon</div>
+                <div className="pointer-events-none select-none absolute left-1/2 top-0 bottom-0 border-l border-white/10" style={{ transform: 'translateX(-50%)' }} />
+
+                {/* Compass overlay */}
+                <div className="absolute right-2 top-2 bg-black/50 border border-gray-700 rounded px-2 py-1 text-[10px] text-gray-200 flex items-center gap-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="#d1d5db" strokeWidth="1.5"/>
+                    <path d="M15.5 8.5l-3.5 7-3.5-7 7 3.5z" fill="#93c5fd" fillOpacity="0.6" stroke="#60a5fa" strokeWidth="1"/>
+                  </svg>
+                  N
+                </div>
+
+                {/* Legend overlay */}
+                <div className="absolute right-2 bottom-2 bg-black/60 border border-gray-700 rounded p-2 text-[10px] text-gray-200 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-white" />
+                    <span>Float</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-blue-300" style={{ boxShadow: '0 0 6px rgba(96,165,250,0.3)' }} />
+                    <span>Polygon</span>
+                  </div>
+                </div>
+
                 {/* Mock map with float positions */}
                 {floats.map(float => (
                   <div 
                     key={float.name}
-                    className="absolute w-2.5 h-2.5 rounded-full bg-white transform -translate-x-1/2 -translate-y-1/2"
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
                     style={{
                       left: `${((float.lon + 180) / 360) * 100}%`,
                       top: `${((90 - float.lat) / 180) * 100}%`
                     }}
-                    title={float.name}
-                  />
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.6)] will-change-transform" />
+                    <div className="mt-1 text-[10px] text-gray-200 bg-black/60 px-1 py-0.5 rounded border border-gray-700 whitespace-nowrap">
+                      {float.name}
+                    </div>
+                  </div>
                 ))}
                 
                 {/* Draw existing polygons */}
@@ -200,9 +290,10 @@ export default function PolygonPage() {
                   >
                     <polygon
                       points={polygon.points.map(p => `${p.x},${p.y}`).join(' ')}
-                      fill={selectedPolygon?.id === polygon.id ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)"}
-                      stroke="#9ca3af"
-                      strokeWidth="1.5"
+                      fill={selectedPolygon?.id === polygon.id ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.10)"}
+                      stroke={selectedPolygon?.id === polygon.id ? "#60a5fa" : "#9ca3af"}
+                      strokeWidth="2"
+                      filter="drop-shadow(0 0 6px rgba(96,165,250,0.3))"
                       className="cursor-pointer"
                     />
                   </svg>
@@ -213,18 +304,19 @@ export default function PolygonPage() {
                   <svg className="absolute top-0 left-0 w-full h-full">
                     <polygon
                       points={currentPolygon.map(p => `${p.x},${p.y}`).join(' ')}
-                      fill="rgba(255,255,255,0.1)"
-                      stroke="#9ca3af"
-                      strokeWidth="1.5"
-                      strokeDasharray="4,4"
+                      fill="rgba(96,165,250,0.12)"
+                      stroke="#93c5fd"
+                      strokeWidth="2"
+                      strokeDasharray="6,6"
                     />
                     {currentPolygon.map((point, i) => (
                       <circle
                         key={i}
                         cx={point.x}
                         cy={point.y}
-                        r="3"
-                        fill="#e5e7eb"
+                        r="3.5"
+                        fill="#ffffff"
+                        style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}
                       />
                     ))}
                   </svg>
