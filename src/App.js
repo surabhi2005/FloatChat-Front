@@ -13,6 +13,7 @@ import MapView from "./components/MapView";
 import MapDetView from "./components/MapDetView";
 import Analytics from "./components/Analytics";
 import BackgroundBeam from "./components/BeamsBackground";
+import FloatTrajectories from "./components/FloatTrajectory";
 
 export default function App() {
   return (
@@ -29,6 +30,8 @@ export default function App() {
         <Route path="/map-view" element={<Layout currentPage="mapview"><MapView /></Layout>}/>
         <Route path="/map-detailed" element={<Layout currentPage="analytics"><MapDetView /></Layout>}/>
         <Route path="/analytics" element={<Layout currentPage="analytics"><Analytics /></Layout>}/>
+        <Route path="/float-trajectory" element={<Layout currentPage="float-trajectory"><FloatTrajectories /></Layout>}/>
+
       </Routes>
     </Router>
     </>

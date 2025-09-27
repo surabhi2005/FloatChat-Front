@@ -51,6 +51,7 @@ export default function Layout({ children, currentPage = "dashboard" }) {
     { id: 'polygon', label: 'Polygon', icon: Hexagon, path: '/polygon' },
     { id: 'mapview', label: 'Map View', icon: Map, path: '/map-view' },
     { id: 'globe', label: 'Globe View', icon: Globe, path: '/globe' },
+    { id: 'float-trajectory', label: 'Float Trajectory', icon: Globe, path: '/float-trajectory' },
     { id: 'voice', label: 'Voice Settings', icon: Mic, path: '#', action: () => setShowVoiceSettings(true) }
   ];
 
