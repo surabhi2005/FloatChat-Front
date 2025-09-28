@@ -114,7 +114,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Global View
               </Link>
@@ -122,11 +122,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <li>
               <Link 
                 to="/float-trajectory" 
-                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/globe') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
+                className={`flex items-center p-2 rounded-lg transition-colors ${isActive('/float-trajectory') ? 'bg-gray-600 text-white' : 'hover:bg-gray-700 hover:text-gray-200'}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 Float Trajectory
               </Link>
