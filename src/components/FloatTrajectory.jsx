@@ -40,11 +40,15 @@ const FloatTrajectories = () => {
     }
 
     if (intervalRef.current) clearInterval(intervalRef.current);
-    let currentStep = step;
+    let currentStep = 0;
 
     intervalRef.current = setInterval(() => {
-      currentStep = (currentStep + 1) % 101;
+      currentStep++;
       setStep(currentStep);
+      if (currentStep >= 100) {
+        currentStep = 0;
+        setStep(0);
+      }
     }, 100);
 
     return () => clearInterval(intervalRef.current);
@@ -65,333 +69,194 @@ const FloatTrajectories = () => {
     setIsPlaying(false);
   };
 
-  const filteredFloats = floatsData.filter((float) =>
+  const filteredFloats = floatsData.filter(float =>
     float.float_id.toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        backgroundColor: "#0f1419",
-        color: "#ffffff",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      }}
-    >
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "320px",
-          overflowY: "auto",
-          borderRight: "1px solid #2d3748",
-          padding: "20px",
-          backgroundColor: "#1a202c",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              margin: "0 0 20px 0",
-              fontSize: "24px",
-              fontWeight: "600",
-              color: "#63b3ed",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            Float Trajectories
-          </h2>
-
-          {/* Search Box */}
-          <div style={{ position: "relative", marginBottom: "20px" }}>
-            <input
-              type="text"
-              placeholder="Search floats..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "12px 40px 12px 16px",
-                borderRadius: "8px",
-                border: "1px solid #4a5568",
-                backgroundColor: "#2d3748",
-                color: "#ffffff",
-                fontSize: "14px",
-                outline: "none",
-                transition: "all 0.3s ease",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#63b3ed")}
-              onBlur={(e) => (e.target.style.borderColor = "#4a5568")}
-            />
-            <span
-              style={{
-                position: "absolute",
-                right: "12px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: "#a0aec0",
-              }}
-            >
-              🔍
-            </span>
-          </div>
-
-          {/* Controls */}
-          {selectedFloat && (
-            <div
-              style={{
-                backgroundColor: "#2d3748",
-                padding: "15px",
-                borderRadius: "8px",
-                marginBottom: "15px",
-                border: "1px solid #4a5568",
-              }}
-            >
-              <h4 style={{ margin: "0 0 10px 0", color: "#cbd5e0" }}>Controls</h4>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  onClick={toggleAnimation}
-                  style={{
-                    flex: 1,
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    backgroundColor: isPlaying ? "#e53e3e" : "#38a169",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => (e.target.style.opacity = "0.8")}
-                  onMouseLeave={(e) => (e.target.style.opacity = "1")}
-                >
-                  {isPlaying ? "⏸ Pause" : "▶ Play"}
-                </button>
-                <button
-                  onClick={resetAnimation}
-                  style={{
-                    flex: 1,
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    backgroundColor: "#d69e2e",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                    transition: "all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => (e.target.style.opacity = "0.8")}
-                  onMouseLeave={(e) => (e.target.style.opacity = "1")}
-                >
-                  🔄 Reset
-                </button>
-              </div>
-              <div
-                style={{
-                  marginTop: "10px",
-                  fontSize: "12px",
-                  color: "#a0aec0",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span>Progress:</span>
-                <span>{step}%</span>
-              </div>
-              <div
-                style={{
-                  width: "100%",
-                  height: "4px",
-                  backgroundColor: "#4a5568",
-                  borderRadius: "2px",
-                  marginTop: "5px",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${step}%`,
-                    height: "100%",
-                    backgroundColor: "#63b3ed",
-                    transition: "width 0.1s ease",
-                    borderRadius: "2px",
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Float List */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "15px",
-            }}
-          >
-            <h3 style={{ margin: 0, fontSize: "16px", color: "#cbd5e0" }}>
-              Floats ({filteredFloats.length})
-            </h3>
-            <span
-              style={{
-                fontSize: "12px",
-                color: "#a0aec0",
-                backgroundColor: "#2d3748",
-                padding: "2px 8px",
-                borderRadius: "12px",
-              }}
-            >
-              {filteredFloats.length} items
-            </span>
-          </div>
-
-          <div style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
-            {filteredFloats.map((float) => (
-              <div
-                key={float.float_id}
-                onClick={() => handleSelectFloat(float)}
-                style={{
-                  padding: "12px 16px",
-                  marginBottom: "8px",
-                  cursor: "pointer",
-                  borderRadius: "8px",
-                  background:
-                    selectedFloat?.float_id === float.float_id
-                      ? "linear-gradient(135deg, #63b3ed, #4299e1)"
-                      : "#2d3748",
-                  color:
-                    selectedFloat?.float_id === float.float_id ? "#1a202c" : "#e2e8f0",
-                  border:
-                    selectedFloat?.float_id === float.float_id
-                      ? "1px solid #63b3ed"
-                      : "1px solid #4a5568",
-                  transition: "all 0.3s ease",
-                  transform:
-                    selectedFloat?.float_id === float.float_id ? "scale(1.02)" : "scale(1)",
-                  boxShadow:
-                    selectedFloat?.float_id === float.float_id
-                      ? "0 4px 12px rgba(99, 179, 237, 0.3)"
-                      : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedFloat?.float_id !== float.float_id) {
-                    e.target.style.backgroundColor = "#4a5568";
-                    e.target.style.transform = "scale(1.02)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedFloat?.float_id !== float.float_id) {
-                    e.target.style.backgroundColor = "#2d3748";
-                    e.target.style.transform = "scale(1)";
-                  }
-                }}
-              >
-                <div
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor:
-                      selectedFloat?.float_id === float.float_id ? "#1a202c" : "#63b3ed",
-                    flexShrink: 0,
-                  }}
-                ></div>
-                <span
-                  style={{
-                    fontWeight:
-                      selectedFloat?.float_id === float.float_id ? "600" : "400",
-                    fontSize: "14px",
-                  }}
-                >
-                  Float {float.float_id}
-                </span>
-                {selectedFloat?.float_id === float.float_id && (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: "12px",
-                      opacity: 0.8,
-                    }}
-                  >
-                    ● Playing
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Map */}
-      <div style={{ flex: 1, position: "relative" }}>
+    <div className="flex h-screen bg-black text-white font-sans">
+      {/* Map - Left side */}
+      <div className="flex-1 relative">
         <MapContainer
           center={[0, 80]}
           zoom={3}
-          style={{ height: "100%", width: "100%" }}
+          className="h-full w-full"
           scrollWheelZoom={true}
         >
-          {/* Dark theme tile layer */}
+          {/* Light theme tile layer */}
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          {selectedFloat && <MovingFloat float={selectedFloat} step={step} isPlaying={isPlaying} />}
+          {selectedFloat && (
+            <MovingFloat float={selectedFloat} step={step} isPlaying={isPlaying} />
+          )}
         </MapContainer>
-
+        
         {/* Map overlay info */}
         {selectedFloat && (
-          <div
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "20px",
-              backgroundColor: "rgba(26, 32, 44, 0.9)",
-              padding: "15px",
-              borderRadius: "8px",
-              border: "1px solid #4a5568",
-              backdropFilter: "blur(10px)",
-              zIndex: 1000,
-              minWidth: "200px",
-            }}
-          >
-            <h4 style={{ margin: "0 0 10px 0", color: "#63b3ed" }}>Selected Float</h4>
-            <div style={{ fontSize: "14px", color: "#cbd5e0" }}>
-              <div>
-                <strong>ID:</strong> {selectedFloat.float_id}
+          <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm p-4 rounded-lg border border-gray-300 z-50 min-w-64 shadow-lg">
+            <h4 className="text-blue-600 font-semibold mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              Selected Float
+            </h4>
+            <div className="space-y-2 text-sm text-gray-700">
+              <div className="flex justify-between">
+                <span className="text-gray-500">ID:</span>
+                <span className="text-gray-900 font-medium">{selectedFloat.float_id}</span>
               </div>
-              <div>
-                <strong>Start:</strong>{" "}
-                {selectedFloat.min_latitude.toFixed(2)}°,{" "}
-                {selectedFloat.min_longitude.toFixed(2)}°
+              <div className="flex justify-between">
+                <span className="text-gray-500">Start:</span>
+                <span className="text-gray-900">{selectedFloat.min_latitude.toFixed(2)}°, {selectedFloat.min_longitude.toFixed(2)}°</span>
               </div>
-              <div>
-                <strong>End:</strong>{" "}
-                {selectedFloat.max_latitude.toFixed(2)}°,{" "}
-                {selectedFloat.max_longitude.toFixed(2)}°
+              <div className="flex justify-between">
+                <span className="text-gray-500">End:</span>
+                <span className="text-gray-900">{selectedFloat.max_latitude.toFixed(2)}°, {selectedFloat.max_longitude.toFixed(2)}°</span>
               </div>
-              <div>
-                <strong>Status:</strong>{" "}
-                <span style={{ color: isPlaying ? "#38a169" : "#e53e3e" }}>
-                  {isPlaying ? "Playing" : "Paused"}
+              <div className="flex justify-between">
+                <span className="text-gray-500">Status:</span>
+                <span className={`font-medium ${isPlaying ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPlaying ? 'Playing' : 'Paused'}
                 </span>
               </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Sidebar - Right side, full height */}
+      <div className="w-80 bg-gray-900 border-l border-gray-700 h-full flex flex-col">
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg mr-3 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                </svg>
+              </div>
+              Float Trajectories
+            </h2>
+            
+            {/* Search Box */}
+            <div className="relative mb-6">
+              <input
+                type="text"
+                placeholder="Search floats..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-3 pl-10 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+              </div>
+            </div>
+
+            {/* Controls */}
+            {selectedFloat && (
+              <div className="bg-gray-800 p-4 rounded-lg border border-gray-600 mb-6">
+                <h4 className="text-white font-semibold mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Controls
+                </h4>
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={toggleAnimation}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
+                      isPlaying 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {isPlaying ? (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                        Pause
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        Play
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={resetAnimation}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white transition-all duration-200 flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Reset
+                  </button>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-300 mb-2">
+                  <span>Progress:</span>
+                  <span className="font-medium">{step}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-blue-500 h-full rounded-full transition-all duration-100 ease-out"
+                    style={{ width: `${step}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Float List */}
+          <div className="px-6 pb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">
+                Floats ({filteredFloats.length})
+              </h3>
+              <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full">
+                {filteredFloats.length} items
+              </span>
+            </div>
+            
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {filteredFloats.map((float) => (
+                <div
+                  key={float.float_id}
+                  onClick={() => handleSelectFloat(float)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 flex items-center gap-3 ${
+                    selectedFloat?.float_id === float.float_id
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 scale-105'
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-200 hover:scale-102'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    selectedFloat?.float_id === float.float_id ? 'bg-white' : 'bg-blue-400'
+                  }`}></div>
+                  <span className={`text-sm ${
+                    selectedFloat?.float_id === float.float_id ? 'font-semibold' : 'font-normal'
+                  }`}>
+                    Float {float.float_id}
+                  </span>
+                  {selectedFloat?.float_id === float.float_id && (
+                    <div className="ml-auto flex items-center text-xs opacity-80">
+                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+                      Playing
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -417,54 +282,58 @@ const MovingFloat = ({ float, step, isPlaying }) => {
   return (
     <>
       {/* Complete path (faint) */}
-      <Polyline positions={completePath} color="#4a5568" weight={2} opacity={0.3} />
-
+      <Polyline 
+        positions={completePath} 
+        color="#4a5568" 
+        weight={2} 
+        opacity={0.3}
+      />
+      
       {/* Traveled path */}
-      <Polyline positions={traveledPath} color="#63b3ed" weight={4} opacity={0.8} />
-
+      <Polyline 
+        positions={traveledPath} 
+        color="#63b3ed" 
+        weight={4} 
+        opacity={0.8}
+      />
+      
       {/* Moving marker */}
-      <CircleMarker
-        center={[lat, lng]}
-        radius={12}
+      <CircleMarker 
+        center={[lat, lng]} 
+        radius={12} 
         color={isPlaying ? "#f56565" : "#d69e2e"}
         fillColor={isPlaying ? "#f56565" : "#d69e2e"}
         fillOpacity={0.9}
         weight={2}
       >
-        <Tooltip direction="top" offset={[0, -10]} opacity={0.9} permanent>
-          <div
-            style={{
-              backgroundColor: "#1a202c",
-              color: "#ffffff",
-              padding: "8px",
-              borderRadius: "4px",
-              fontSize: "12px",
-              border: "1px solid #4a5568",
-            }}
-          >
-            <strong>Float {float_id}</strong>
-            <br />
-            Position: {lat.toFixed(2)}°, {lng.toFixed(2)}°
-            <br />
-            Progress: {step}%
+        <Tooltip 
+          direction="top" 
+          offset={[0, -10]} 
+          opacity={0.9}
+          permanent
+        >
+          <div className="bg-white text-gray-900 p-2 rounded text-xs border border-gray-300 shadow-lg">
+            <div className="font-semibold">Float {float_id}</div>
+            <div>Position: {lat.toFixed(2)}°, {lng.toFixed(2)}°</div>
+            <div>Progress: {step}%</div>
           </div>
         </Tooltip>
       </CircleMarker>
-
+      
       {/* Start and end markers */}
-      <CircleMarker
-        center={[min_latitude, min_longitude]}
-        radius={6}
+      <CircleMarker 
+        center={[min_latitude, min_longitude]} 
+        radius={6} 
         color="#38a169"
         fillColor="#38a169"
         fillOpacity={0.7}
       >
         <Tooltip permanent>Start</Tooltip>
       </CircleMarker>
-
-      <CircleMarker
-        center={[max_latitude, max_longitude]}
-        radius={6}
+      
+      <CircleMarker 
+        center={[max_latitude, max_longitude]} 
+        radius={6} 
         color="#e53e3e"
         fillColor="#e53e3e"
         fillOpacity={0.7}
